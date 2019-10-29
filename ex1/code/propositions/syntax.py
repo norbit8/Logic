@@ -187,6 +187,28 @@ class Formula:
             the error message is a string with some human-readable content.
         """
         # Task 1.4
+        if s == "":
+            return None, ""
+
+        if len(s) == 1:
+            if is_variable(s) or is_constant(s):
+                return Formula(s), ""
+            else:
+                return None, ""
+
+        else:
+            var = ""
+            if s[0] == "(":
+                pass
+
+            if s[0] == "~":
+                ret = Formula.parse_prefix(s[1:])
+
+
+            if is_variable(s[0]) || is_unary(s[0]):
+                for ch in s:
+                    var += ch
+
         prefix = ""
         parentheses = 0
         operators = 0
