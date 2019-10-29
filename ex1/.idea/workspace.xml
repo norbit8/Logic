@@ -11,11 +11,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="750">
-      <file leaf-file-name="syntax.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="syntax.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/code/propositions/syntax.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="720">
-              <caret line="124" column="0" lean-forward="false" selection-start-line="124" selection-start-column="0" selection-end-line="153" selection-end-column="19" />
+            <state relative-caret-position="477">
+              <caret line="147" column="19" lean-forward="false" selection-start-line="147" selection-start-column="19" selection-end-line="147" selection-end-column="19" />
               <folding>
                 <element signature="e#198#232#0" expanded="true" />
               </folding>
@@ -23,21 +23,21 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="test_ex1.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/code/test_ex1.py">
+      <file leaf-file-name="syntax_test.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/code/propositions/syntax_test.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="592">
-              <caret line="35" column="0" lean-forward="false" selection-start-line="35" selection-start-column="0" selection-end-line="35" selection-end-column="16" />
+            <state relative-caret-position="757">
+              <caret line="83" column="3" lean-forward="false" selection-start-line="83" selection-start-column="3" selection-end-line="83" selection-end-column="3" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="syntax_test.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/code/propositions/syntax_test.py">
+      <file leaf-file-name="test_ex1.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/code/test_ex1.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="557">
-              <caret line="46" column="0" lean-forward="true" selection-start-line="46" selection-start-column="0" selection-end-line="46" selection-end-column="0" />
+            <state relative-caret-position="1040">
+              <caret line="26" column="0" lean-forward="true" selection-start-line="26" selection-start-column="0" selection-end-line="26" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -48,9 +48,9 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/code/propositions/syntax.py" />
         <option value="$PROJECT_DIR$/code/propositions/syntax_test.py" />
         <option value="$PROJECT_DIR$/code/test_ex1.py" />
+        <option value="$PROJECT_DIR$/code/propositions/syntax.py" />
       </list>
     </option>
   </component>
@@ -242,29 +242,29 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/code/test_ex1.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="592">
-          <caret line="35" column="0" lean-forward="false" selection-start-line="35" selection-start-column="0" selection-end-line="35" selection-end-column="16" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/code/propositions/syntax_test.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="557">
-          <caret line="46" column="0" lean-forward="true" selection-start-line="46" selection-start-column="0" selection-end-line="46" selection-end-column="0" />
+        <state relative-caret-position="757">
+          <caret line="83" column="3" lean-forward="false" selection-start-line="83" selection-start-column="3" selection-end-line="83" selection-end-column="3" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/code/propositions/syntax.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="720">
-          <caret line="124" column="0" lean-forward="false" selection-start-line="124" selection-start-column="0" selection-end-line="153" selection-end-column="19" />
+        <state relative-caret-position="477">
+          <caret line="147" column="19" lean-forward="false" selection-start-line="147" selection-start-column="19" selection-end-line="147" selection-end-column="19" />
           <folding>
             <element signature="e#198#232#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/code/test_ex1.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1040">
+          <caret line="26" column="0" lean-forward="true" selection-start-line="26" selection-start-column="0" selection-end-line="26" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>

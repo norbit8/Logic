@@ -55,6 +55,7 @@ def test_operators(debug=False):
                    (Formula('~', Formula('~', Formula('|', Formula('x'), Formula('~',Formula('x'))))),{'|', '~'})]:
         if debug:
             print ("Testing operators of", f)
+        print("VERIFY: ", f.operators(), ops)
         assert f.operators() == ops
 
 parsing_tests = [('', None, ''),

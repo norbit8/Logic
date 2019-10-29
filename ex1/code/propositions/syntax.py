@@ -161,6 +161,14 @@ class Formula:
             current formula.
         """
         # Task 1.3
+        vars = set()
+        if is_binary(self.root) or is_unary(self.root) or is_constant(self.root):
+            vars.add(self.root)
+        if hasattr(self, "first"):
+            vars = vars.union(self.first.operators())
+        if hasattr(self, "second"):
+            vars = vars.union(self.second.operators())
+        return vars
 
     @staticmethod
     def parse_prefix(s: str) -> Tuple[Union[Formula, None], str]:
@@ -179,6 +187,18 @@ class Formula:
             the error message is a string with some human-readable content.
         """
         # Task 1.4
+        prefix = ""
+        parentheses = 0
+        operators = 0
+        for ch in s:
+            if is_variable(ch):
+                prefix += ch
+            if is_binary(ch):
+                break
+
+
+
+
 
     @staticmethod
     def is_formula(s: str) -> bool:
