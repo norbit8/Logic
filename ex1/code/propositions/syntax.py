@@ -10,6 +10,17 @@ from typing import Mapping, Optional, Set, Tuple, Union
 
 from logic_utils import frozen
 
+EMPTY_STRING = "Empty string"
+
+INVALID_LETTER = "Invalid letter"
+
+MISSING_OPERATOR = "Missing Operator"
+
+MISSING_PARENT = "Missing ')'"
+
+UNEXPECTED_SYMBOL = "Unexpected symbol"
+
+
 def is_variable(s: str) -> bool:
     """Checks if the given string is an atomic proposition.
 
@@ -188,7 +199,7 @@ class Formula:
         """
         # Task 1.4
         if s == "":
-            return None, ""
+            return None, EMPTY_STRING
 
         if len(s) == 1:
             if is_variable(s) or is_constant(s):
@@ -218,8 +229,61 @@ class Formula:
             if is_binary(ch):
                 break
 
+        if len(s) == 1:
+            if is_variable(s) or is_constant(s):
+                return Formula(s), ""
+            else:
+                return None, INVALID_LETTER
+
+        else:
+            var = ""
+            rest = ""
+            if s[0] == "(":
+                pp = Formula.parse_prefix(s[1:])
+                var = pp[0]
+                if var is None:
+                    return None, ""
+                if (not is_binary(pp[1][0])) and (not is_binary(pp[1][:2])):
+                    return None, MISSING_OPERATOR
+                else:
+                    st = ""
+                    op = ""
+                    if(pp[1][0] == '-'):
+                        st = pp[1][2:]
+                        op = "->"
+                    else:
+                        st = pp[1][1:]
+                        op = pp[1][0]
+                    pp2 = Formula.parse_prefix(st)
+                    if pp2[1] == "" or pp2[1][0] != ')':
+                        return None, MISSING_PARENT
+                    else:
+                        var = Formula(op, var, pp2[0])
+                        return var, pp2[1][1:]
 
 
+            if is_constant(s[0]):
+                return Formula(s[0]), s[1:]
+
+
+            if is_variable(s[0]):
+                for index in range(len(s)):
+                    var += s[index]
+                    if not (is_variable(var)):
+                        rest = s[index:]
+                        var = var[:-1]
+                        break
+                return Formula(var), rest
+
+            if is_unary(s[0]):
+                rest = Formula.parse_prefix(s[1:])
+                if (rest[0] is None):
+                    return None, ""
+                formul = Formula(s[0], rest[0])
+                rest = rest[1]
+                return formul, rest
+            else:
+                return None, UNEXPECTED_SYMBOL
 
 
     @staticmethod
@@ -234,6 +298,12 @@ class Formula:
             representation of a formula, ``False`` otherwise.
         """
         # Task 1.5
+        if Formula.parse_prefix(s)[0] is None:
+            return False
+        if Formula.parse_prefix(s)[1] != "":
+            return False
+        return True
+
 
     @staticmethod
     def parse(s: str) -> Formula:
@@ -247,6 +317,7 @@ class Formula:
         """
         assert Formula.is_formula(s)
         # Task 1.6
+        return Formula.parse_prefix(s)[0]
 
 # Optional tasks for Chapter 1
 
