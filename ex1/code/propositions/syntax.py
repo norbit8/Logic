@@ -205,6 +205,34 @@ class Formula:
             if is_variable(s) or is_constant(s):
                 return Formula(s), ""
             else:
+                return None, ""
+
+        else:
+            var = ""
+            if s[0] == "(":
+                pass
+
+            if s[0] == "~":
+                ret = Formula.parse_prefix(s[1:])
+
+
+            if is_variable(s[0]) || is_unary(s[0]):
+                for ch in s:
+                    var += ch
+
+        prefix = ""
+        parentheses = 0
+        operators = 0
+        for ch in s:
+            if is_variable(ch):
+                prefix += ch
+            if is_binary(ch):
+                break
+
+        if len(s) == 1:
+            if is_variable(s) or is_constant(s):
+                return Formula(s), ""
+            else:
                 return None, INVALID_LETTER
 
         else:
