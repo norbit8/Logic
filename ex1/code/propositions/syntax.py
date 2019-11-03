@@ -68,6 +68,59 @@ def is_binary(s: str) -> bool:
     # For Chapter 3:
     # return s in {'&', '|',  '->', '+', '<->', '-&', '-|'}
 
+
+def obtain_variable(s: str) -> Tuple[Union[Formula, None], str]:
+    var = ""
+    rest = ""
+    for index in range(len(s)):
+        var += s[index]
+        if not (is_variable(var)):
+            rest = s[index:]
+            var = var[:-1]
+            break
+    return Formula(var), rest
+
+
+def obtain_formula_unaries(s: str) -> Tuple[Union[Formula, None], str]:
+    rest = Formula.parse_prefix(s[1:])
+    if (rest[0] is None):
+        return None, ""
+    formul = Formula(s[0], rest[0])
+    rest = rest[1]
+    return formul, rest
+
+
+def formula_is_single_char(s: str) -> Tuple[Union[Formula, None], str]:
+    if is_variable(s) or is_constant(s):
+        return Formula(s), ""
+    else:
+        return None, ""
+
+
+def open_parentheses(s: str) -> Tuple[Union[Formula, None], str]:
+    pp = Formula.parse_prefix(s[1:])
+    var = pp[0]
+    if var is None:
+        return None, ""
+    if (not is_binary(pp[1][0])) and (not is_binary(pp[1][:2])):
+        return None, MISSING_OPERATOR
+    else:
+        st = ""
+        op = ""
+        if pp[1][0] is '-':
+            st = pp[1][2:]
+            op = "->"
+        else:
+            st = pp[1][1:]
+            op = pp[1][0]
+        pp2 = Formula.parse_prefix(st)
+        if pp2[1] == "" or pp2[1][0] != ')':
+            return None, MISSING_PARENT
+        else:
+            var = Formula(op, var, pp2[0])
+            return var, pp2[1][1:]
+
+
 @frozen
 class Formula:
     """An immutable propositional formula in tree representation.
@@ -147,7 +200,6 @@ class Formula:
             formulaStrRep = formulaStrRep + str(self.first)
         return formulaStrRep
 
-
     def variables(self) -> Set[str]:
         """Finds all atomic propositions (variables) in the current formula.
 
@@ -202,61 +254,26 @@ class Formula:
             return None, EMPTY_STRING
 
         if len(s) == 1:
-            if is_variable(s) or is_constant(s):
-                return Formula(s), ""
-            else:
-                return None, INVALID_LETTER
+            return formula_is_single_char(s)
 
         else:
-            var = ""
-            rest = ""
+            # String begins with an open parentheses
             if s[0] == "(":
-                pp = Formula.parse_prefix(s[1:])
-                var = pp[0]
-                if var is None:
-                    return None, ""
-                if (not is_binary(pp[1][0])) and (not is_binary(pp[1][:2])):
-                    return None, MISSING_OPERATOR
-                else:
-                    st = ""
-                    op = ""
-                    if(pp[1][0] == '-'):
-                        st = pp[1][2:]
-                        op = "->"
-                    else:
-                        st = pp[1][1:]
-                        op = pp[1][0]
-                    pp2 = Formula.parse_prefix(st)
-                    if pp2[1] == "" or pp2[1][0] != ')':
-                        return None, MISSING_PARENT
-                    else:
-                        var = Formula(op, var, pp2[0])
-                        return var, pp2[1][1:]
+                return open_parentheses(s)
 
-
+            # String begins with a constant
             if is_constant(s[0]):
                 return Formula(s[0]), s[1:]
 
-
+            # String begins with a variable
             if is_variable(s[0]):
-                for index in range(len(s)):
-                    var += s[index]
-                    if not (is_variable(var)):
-                        rest = s[index:]
-                        var = var[:-1]
-                        break
-                return Formula(var), rest
+                return obtain_variable(s)
 
+            # String begins with unary
             if is_unary(s[0]):
-                rest = Formula.parse_prefix(s[1:])
-                if (rest[0] is None):
-                    return None, ""
-                formul = Formula(s[0], rest[0])
-                rest = rest[1]
-                return formul, rest
-            else:
-                return None, UNEXPECTED_SYMBOL
+                return obtain_formula_unaries(s)
 
+            return None, UNEXPECTED_SYMBOL
 
     @staticmethod
     def is_formula(s: str) -> bool:
