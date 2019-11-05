@@ -153,18 +153,24 @@ def print_truth_table(formula: Formula) -> None:
         | T | T   | F        |
     """
     # Task 2.4
-    vars = List(formula.variables())
-    vars.append(str(formula))
-    models = List(all_models(vars))
-    for var in vars:
-        print("| " + var + " ", end="")
-    print("|")
-    for var in vars:
-        print("|" + len(var)*"-"+"--", end="")
-    print("|")
-    for model in models:
+    names = list(formula.variables())
+    names.sort()
+    models = list(all_models(names))
+    print_this = []
+    for index, model in enumerate(models):
         evalue = evaluate(formula, model)
-        print()
+        print_this.append(evalue)
+    for var in names:
+        print("| " + var + " ", end="")
+    print("| " + str(formula) + " |")
+    # top div
+    for var in names:
+        print("|" + len(var)*"-"+"--", end="")
+    print("|" + len(str(formula))*"-"+"--" + "|")
+    for index, model in enumerate(models):
+        for name in names:
+            print("| " + ("T" if model[name] is True else "F")  + len(name)*" " , end="")
+        print("| " + ("T" if print_this[index] is True else "F") + len(str(formula))*" " + "|")
 
 def is_tautology(formula: Formula) -> bool:
     """Checks if the given formula is a tautology.
@@ -176,6 +182,12 @@ def is_tautology(formula: Formula) -> bool:
         ``True`` if the given formula is a tautology, ``False`` otherwise.
     """
     # Task 2.5a
+    names = list(formula.variables())
+    models = list(all_models(names))
+    for index, model in enumerate(models):
+        if evaluate(formula, model) is False:
+            return False
+    return True
 
 def is_contradiction(formula: Formula) -> bool:
     """Checks if the given formula is a contradiction.
@@ -187,6 +199,8 @@ def is_contradiction(formula: Formula) -> bool:
         ``True`` if the given formula is a contradiction, ``False`` otherwise.
     """
     # Task 2.5b
+    not_formula = Formula.parse('~' + str(formula))
+    return is_tautology(not_formula)
 
 def is_satisfiable(formula: Formula) -> bool:
     """Checks if the given formula is satisfiable.
@@ -198,6 +212,12 @@ def is_satisfiable(formula: Formula) -> bool:
         ``True`` if the given formula is satisfiable, ``False`` otherwise.
     """
     # Task 2.5c
+    names = list(formula.variables())
+    models = list(all_models(names))
+    for index, model in enumerate(models):
+        if evaluate(formula, model) is True:
+            return True
+    return False
 
 def synthesize_for_model(model: Model) -> Formula:
     """Synthesizes a propositional formula in the form of a single clause that
