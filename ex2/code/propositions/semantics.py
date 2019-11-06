@@ -232,6 +232,25 @@ def synthesize_for_model(model: Model) -> Formula:
     """
     assert is_model(model)
     # Task 2.6
+    print()
+    if len(model) == 0:
+        return Formula.parse("")
+    if len(model) == 1:
+        for key in model:
+            if model[key]:
+                return Formula.parse(key)
+            else:
+                return Formula.parse("~" + key)
+    keys = list(model.keys())
+    mod = dict()
+    mod[keys[0]] = model[keys[0]]
+    form = synthesize_for_model(mod)
+    for index in range(1, len(keys)):
+        mod.clear()
+        mod[keys[index]] = model[keys[index]]
+        new_form = "(" + str(form) + "&" + str(synthesize_for_model(mod)) + ")"
+        form = Formula.parse(new_form)
+    return form
 
 def synthesize(variables: List[str], values: Iterable[bool]) -> Formula:
     """Synthesizes a propositional formula in DNF over the given variables, from
