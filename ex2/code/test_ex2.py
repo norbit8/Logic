@@ -37,4 +37,4 @@ def test_task7(debug=False):
 # test_task4(True)
 # test_task5(True)
 # test_task6(True)
-# test_task7(True)
+test_task7(True)
