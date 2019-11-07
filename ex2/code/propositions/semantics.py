@@ -277,6 +277,19 @@ def synthesize(variables: List[str], values: Iterable[bool]) -> Formula:
     """
     assert len(variables) > 0
     # Task 2.7
+    if not (True in values):
+        return Formula.parse("(" + variables[0] + "&~" + variables[0] + ")")
+    else:
+        models = list(all_models(variables))
+        first_true = False
+        for index, val in enumerate(values):
+            if val is True and not first_true:
+                res = str(synthesize_for_model(models[index]))
+                first_true = True
+            if val is True and first_true:
+                res = "(" + res + "|" + str(synthesize_for_model(models[index])) + ")"
+        return Formula.parse(res)
+
 
 # Tasks for Chapter 4
 
