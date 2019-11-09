@@ -6,7 +6,6 @@
 """Syntactic handling of propositional formulae."""
 
 from __future__ import annotations
-import re
 from typing import Mapping, Optional, Set, Tuple, Union
 
 from logic_utils import frozen
@@ -125,6 +124,19 @@ def open_parentheses(s: str) -> Tuple[Union[Formula, None], str]:
         else:
             var = Formula(op, var, pp2[0])
             return var, pp2[1][1:]
+
+
+def sub_op(res, p, substitution_map, rest):
+    if str(p) is "q":
+        res = res.substitute_variables({"p": Formula.parse(str(p) + "1")})  # left
+        res = res.substitute_variables(
+            {"q": Formula.parse_prefix(rest)[0].substitute_operators(substitution_map)})  # right
+        res = res.substitute_variables({str(p) + "1": p})  # left
+    else:
+        res = res.substitute_variables({"p": p})  # left
+        res = res.substitute_variables(
+            {"q": Formula.parse_prefix(rest)[0].substitute_operators(substitution_map)})  # right
+    return str(res)
 
 
 @frozen
@@ -365,7 +377,9 @@ class Formula:
                     if var in old[index:]:
                         first_index = old[index:].find(var)
                         if not(old[index:][first_index + len(var):first_index + len(var) + 1].isnumeric()):
-                            old = old[:index+first_index] + str(substitution_map[var]) + old[index+first_index + len(var):]
+                            old = old[:index+first_index] +\
+                                  str(substitution_map[var]) +\
+                                  old[index + first_index + len(var):]
         return Formula.parse(old)
 
     def substitute_operators(
@@ -393,87 +407,58 @@ class Formula:
                    is_constant(operator)
             assert substitution_map[operator].variables().issubset({'p', 'q'})
         # Task 3.4
-        old = self.__repr__()
-        if old is "":
-            return old
-        if old[0] is "~":
-            pass
-        for op in substitution_map:
-            if op is "T" and old is "T":
-                return substitution_map["T"]
-            if op is "F" and old is "F":
-                return substitution_map["F"]
+        old = str(self)
+        if old[0] is "~" and "~" in substitution_map:
+            ret = Formula.parse(old[1:]).substitute_operators(substitution_map)
+            return substitution_map["~"].substitute_variables({"p": ret})
+        if "T" in substitution_map and "T" in old:
+            old = old.replace("T", str(substitution_map["T"]))
+        if "F" in substitution_map and "F" in old:
+            old = old.replace("F", str(substitution_map["F"]))
         if old[0] == "(":
             tup = Formula.parse_prefix(old[1:])
-            p = tup[0].substitute_operators(substitution_map)
-            rest = tup[1]
+            rest, p = (tup[1], tup[0].substitute_operators(substitution_map))
             if rest[0:2] == "-|" and "-|" in substitution_map:
-                res = substitution_map["-|"]
-                if str(p) is "q":
-                    res = res.substitute_variables({"p": Formula.parse(str(p) + "1")}) # left
-                    res = res.substitute_variables({"q": Formula.parse_prefix(rest[2:])[0].substitute_operators(substitution_map)}) # right
-                    res = res.substitute_variables({str(p) + "1": p})  # left
+                if "-|" in substitution_map:
+                    old = sub_op(substitution_map["-|"], p, substitution_map, rest[2:])
                 else:
-                    res = res.substitute_variables({"p": p}) # left
-                old = str(res)
+                    old = "(" + str(p) + "-|" + str(
+                        Formula.parse_prefix(rest[2:])[0].substitute_operators(substitution_map)) + \
+                          Formula.parse_prefix(rest[2:])[1]
             if rest[0:2] == "-&" and "-&" in substitution_map:
-                res = substitution_map["-&"]
-                if str(p) is "q":
-                    res = res.substitute_variables({"p": Formula.parse(str(p) + "1")}) # left
-                    res = res.substitute_variables({"q": Formula.parse_prefix(rest[2:])[0].substitute_operators(substitution_map)}) # right
-                    res = res.substitute_variables({str(p) + "1": p})  # left
+                if "-&" in substitution_map:
+                    old = sub_op(substitution_map["-&"], p, substitution_map, rest[2:])
                 else:
-                    res = res.substitute_variables({"p": p}) # left
-                old = str(res)
-            if rest[0:2] == "->" and "->" in substitution_map:
-                res = substitution_map["->"]
-                if str(p) is "q":
-                    res = res.substitute_variables({"p": Formula.parse(str(p) + "1")}) # left
-                    res = res.substitute_variables({"q": Formula.parse_prefix(rest[2:])[0].substitute_operators(substitution_map)}) # right
-                    res = res.substitute_variables({str(p)+"1": p}) # left
+                    old = "(" + str(p) + "-&" + str(Formula.parse_prefix(rest[2:])[0].substitute_operators(substitution_map))\
+                          + Formula.parse_prefix(rest[2:])[1]
+            if rest[0:2] == "->":
+                if "->" in substitution_map:
+                    old = sub_op(substitution_map["->"], p, substitution_map, rest[2:])
                 else:
-                    res = res.substitute_variables({"p": p}) # left
-                    res = res.substitute_variables({"q": Formula.parse_prefix(rest[2:])[0].substitute_operators(substitution_map)}) # right
-                old = str(res)
-            if rest[0] == "+" and "+" in substitution_map:
-                res = substitution_map["+"]
-                if str(p) is "q":
-                    res = res.substitute_variables({"p": Formula.parse(str(p) + "1")}) # left
-                    res = res.substitute_variables({"q": Formula.parse_prefix(rest[1:])[0].substitute_operators(substitution_map)}) # right
-                    res = res.substitute_variables({str(p) + "1": p})  # left
+                    old = "(" + str(p) + "->" + str(Formula.parse_prefix(rest[2:])[0].substitute_operators(substitution_map))\
+                          + Formula.parse_prefix(rest[2:])[1]
+            if rest[0] == "+":
+                if "+" in substitution_map:
+                    old = sub_op(substitution_map["+"], p, substitution_map, rest[1:])
                 else:
-                    res = res.substitute_variables({"p": p}) # left
-                    res = res.substitute_variables({"q": Formula.parse_prefix(rest[1:])[0].substitute_operators(substitution_map)}) # right
-                old = str(res)
-            if rest[0:3] == "<->" and "<->" in substitution_map:
-                res = substitution_map["<->"]
-                if str(p) is "q":
-                    res = res.substitute_variables({"p": Formula.parse(str(p) + "1")}) # left
-                    res = res.substitute_variables({"q": Formula.parse_prefix(rest[3:])[0].substitute_operators(substitution_map)}) # right
-                    res = res.substitute_variables({str(p) + "1": p})  # left
+                    old = "(" + str(p) + "+" + str(Formula.parse_prefix(rest[1:])[0].substitute_operators(substitution_map))\
+                          + Formula.parse_prefix(rest[1:])[1]
+            if rest[0:3] == "<->":
+                if "<->" in substitution_map:
+                    old = sub_op(substitution_map["<->"], p, substitution_map, rest[3:])
                 else:
-                    res = res.substitute_variables({"p": p}) # left
-                    res = res.substitute_variables({"q": Formula.parse_prefix(rest[3:])[0].substitute_operators(substitution_map)}) # right
-                old = str(res)
-            if rest[0] == "&" and "&" in substitution_map:
-                res = substitution_map["&"]
-                if str(p) is "q":
-                    res = res.substitute_variables({"p": Formula.parse(str(p) + "1")}) # left
-                    res = res.substitute_variables({"q": Formula.parse_prefix(rest[1:])[0].substitute_operators(substitution_map)}) # right
-                    res = res.substitute_variables({str(p) + "1": p})  # left
+                    old = "(" + str(p) + "<->" + str(Formula.parse_prefix(rest[3:])[0].substitute_operators(substitution_map))\
+                          + Formula.parse_prefix(rest[3:])[1]
+            if rest[0] == "&":
+                if "&" in substitution_map:
+                    old = sub_op(substitution_map["&"], p, substitution_map, rest[1:])
                 else:
-                    res = res.substitute_variables({"p": p}) # left
-                    res = res.substitute_variables({"q": Formula.parse_prefix(rest[1:])[0].substitute_operators(substitution_map)}) # right
-                old = str(res)
-            if rest[0] == "|" and "|" in substitution_map:
-                res = substitution_map["|"]
-                if str(p) is "q":
-                    res = res.substitute_variables({"p": Formula.parse(str(p) + "1")}) # left
-                    res = res.substitute_variables({"q": Formula.parse_prefix(rest[1:])[0].substitute_operators(substitution_map)}) # right
-                    res = res.substitute_variables({str(p) + "1": p})  # left
+                    old = "(" + str(p) + "&" + str(Formula.parse_prefix(rest[1:])[0].substitute_operators(substitution_map))\
+                          + Formula.parse_prefix(rest[1:])[1]
+            if rest[0] == "|":
+                if "|" in substitution_map:
+                    old = sub_op(substitution_map["|"], p, substitution_map, rest[1:])
                 else:
-                    res = res.substitute_variables({"p": p}) # left
-                    res = res.substitute_variables({"q": Formula.parse_prefix(rest[1:])[0].substitute_operators(substitution_map)}) # right
-                old = str(res)
-            return Formula.parse(old)
+                    old = "(" + str(p) + "|" + str(Formula.parse_prefix(rest[1:])[0].substitute_operators(substitution_map))\
+                          + Formula.parse_prefix(rest[1:])[1]
         return Formula.parse(old)

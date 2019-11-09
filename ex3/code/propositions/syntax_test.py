@@ -311,8 +311,7 @@ def test_substitute_operators(debug=False):
         f = Formula.parse(f)
         d = {k:Formula.parse(d[k]) for k in d}
         a = str(f.substitute_operators(frozendict(d)))
-        print("I GOT: ", a, " CORRECT IS: ", r)
-        assert a == r, "Incorrect answer:"+a             
+        assert a == r, "Incorrect answer:"+a
                
 def test_ex1(debug=False):
     test_repr(debug)
