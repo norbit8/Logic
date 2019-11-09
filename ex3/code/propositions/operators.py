@@ -9,6 +9,36 @@ operators."""
 from propositions.syntax import *
 from propositions.semantics import *
 
+TRUE = Formula.parse("(p|~p)")
+FALSE = Formula.parse("~(p|~p)")
+NAND = Formula.parse("~(p&q)")
+NOR = Formula.parse("~(p|q)")
+IF = Formula.parse("(~p|q)")
+IFF = Formula.parse("((p&q)|~(p|q))")
+XOR = Formula.parse("((p&~q)|(~p&q))")
+OR = Formula.parse("~(~p&~q)")
+
+
+
+
+NOT_NAND = Formula.parse("(p-&p)")
+AND_NAND = Formula.parse("((p-&q)-&(p-&q))")
+OR_NAND = Formula.parse("((p-&p)-&(q-&q))")
+
+AND_IN = Formula.parse("~(p->~q)")
+OR_IN = Formula.parse("(~p->q)")
+
+NOT_IF = Formula.parse("(p->F)")
+OR_IF = Formula.parse("((p->F)->q)")
+AND_IF = Formula.parse("((p->(q->F))->F)")
+
+TO_NOT_AND_OR = {"->": IF, "<->": IFF, "+": XOR, "-&": NAND, "-|": NOR, "T": TRUE, "F": FALSE}
+TO_NOT_AND = {"|": OR}
+
+TO_NAND_DICT = {"~": NOT_NAND, "&": AND_NAND, "|": OR_NAND}
+TO_IMPLIES_NOT_DICT = {"&": AND_IN, "|": OR_IN}
+TO_IMPLIES_F_DICT = {"~": NOT_IF, "&": AND_IF, "|": OR_IF}
+
 def to_not_and_or(formula: Formula) -> Formula:
     """Syntactically converts the given formula to an equivalent formula that
     contains no constants or operators beyond ``'~'``, ``'&'``, and ``'|'``.
@@ -22,15 +52,7 @@ def to_not_and_or(formula: Formula) -> Formula:
         ``'|'``.
     """
     # Task 3.5
-    formula = formula.substitute_operators({"F": Formula.parse("~(p|~p)"),
-                                            "T": Formula.parse("(p|~p)"),
-                                            "+": Formula.parse("((p&~q)|(~p&q))"),
-                                            "<->": Formula.parse("((~p&~q)|(p&q))"),
-                                            "-&": Formula.parse("~(p&q)"),
-                                            "-|": Formula.parse("~(p|q)"),
-                                            "->": Formula.parse("(~p|q)")
-                                            })
-    return formula
+    return formula.substitute_operators(TO_NOT_AND_OR)
 
 
 def to_not_and(formula: Formula) -> Formula:
@@ -45,7 +67,9 @@ def to_not_and(formula: Formula) -> Formula:
         contains no constants or operators beyond ``'~'`` and ``'&'``.
     """
     # Task 3.6a
-    
+    TO_NOT_AND_OR["F"] = Formula.parse("(p&~p)")
+    return formula.substitute_operators(TO_NOT_AND_OR).substitute_operators(TO_NOT_AND)
+
 
 def to_nand(formula: Formula) -> Formula:
     """Syntactically converts the given formula to an equivalent formula that
@@ -59,6 +83,9 @@ def to_nand(formula: Formula) -> Formula:
         contains no constants or operators beyond ``'-&'``.
     """
     # Task 3.6b
+    TO_NOT_AND_OR["F"] = Formula.parse("(p&~p)")
+    return formula.substitute_operators(TO_NOT_AND_OR)
+#.substitute_operators(TO_NAND_DICT)
 
 def to_implies_not(formula: Formula) -> Formula:
     """Syntactically converts the given formula to an equivalent formula that
@@ -72,6 +99,7 @@ def to_implies_not(formula: Formula) -> Formula:
         contains no constants or operators beyond ``'->'`` and ``'~'``.
     """
     # Task 3.6c
+    # return formula.substitute_operators(TO_NAO_DICT).substitute_operators(TO_IMPLIES_NOT_DICT)
 
 def to_implies_false(formula: Formula) -> Formula:
     """Syntactically converts the given formula to an equivalent formula that
@@ -85,3 +113,4 @@ def to_implies_false(formula: Formula) -> Formula:
         contains no constants or operators beyond ``'->'`` and ``'F'``.
     """
     # Task 3.6d
+    # return formula.substitute_operators(TO_NAO_DICT).substitute_operators(TO_IMPLIES_F_DICT)

@@ -408,9 +408,13 @@ class Formula:
             assert substitution_map[operator].variables().issubset({'p', 'q'})
         # Task 3.4
         old = str(self)
-        if old[0] is "~" and "~" in substitution_map:
-            ret = Formula.parse(old[1:]).substitute_operators(substitution_map)
-            return substitution_map["~"].substitute_variables({"p": ret})
+        if old[0] is "~":
+            if "~" in substitution_map:
+                ret = Formula.parse(old[1:]).substitute_operators(substitution_map)
+                print(ret)
+                return substitution_map["~"].substitute_variables({"p": ret})
+            else:
+                return Formula.parse("~" + str(Formula.parse(old[1:]).substitute_operators(substitution_map)))
         if "T" in substitution_map and "T" in old:
             old = old.replace("T", str(substitution_map["T"]))
         if "F" in substitution_map and "F" in old:
