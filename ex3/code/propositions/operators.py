@@ -84,8 +84,7 @@ def to_nand(formula: Formula) -> Formula:
     """
     # Task 3.6b
     TO_NOT_AND_OR["F"] = Formula.parse("(p&~p)")
-    return formula.substitute_operators(TO_NOT_AND_OR)
-#.substitute_operators(TO_NAND_DICT)
+    return formula.substitute_operators(TO_NOT_AND_OR).substitute_operators(TO_NAND_DICT)
 
 def to_implies_not(formula: Formula) -> Formula:
     """Syntactically converts the given formula to an equivalent formula that
@@ -99,7 +98,7 @@ def to_implies_not(formula: Formula) -> Formula:
         contains no constants or operators beyond ``'->'`` and ``'~'``.
     """
     # Task 3.6c
-    # return formula.substitute_operators(TO_NAO_DICT).substitute_operators(TO_IMPLIES_NOT_DICT)
+    return formula.substitute_operators(TO_NOT_AND_OR).substitute_operators(TO_IMPLIES_NOT_DICT)
 
 def to_implies_false(formula: Formula) -> Formula:
     """Syntactically converts the given formula to an equivalent formula that
@@ -113,4 +112,4 @@ def to_implies_false(formula: Formula) -> Formula:
         contains no constants or operators beyond ``'->'`` and ``'F'``.
     """
     # Task 3.6d
-    # return formula.substitute_operators(TO_NAO_DICT).substitute_operators(TO_IMPLIES_F_DICT)
+    return formula.substitute_operators(TO_NOT_AND_OR).substitute_operators(TO_IMPLIES_F_DICT)

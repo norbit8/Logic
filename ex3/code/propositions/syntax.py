@@ -350,8 +350,7 @@ class Formula:
 
 # Tasks for Chapter 3
 
-    def substitute_variables(
-            self, substitution_map: Mapping[str, Formula]) -> Formula:
+    def substitute_variables(self, substitution_map: Mapping[str, Formula]) -> Formula:
         """Substitutes in the current formula, each variable `v` that is a key
         in `substitution_map` with the formula `substitution_map[v]`.
 
@@ -370,17 +369,17 @@ class Formula:
         for variable in substitution_map:
             assert is_variable(variable)
         # Task 3.3
-        old = self.__repr__()
-        for var in substitution_map:
-            if var in old:
-                for index in range(len(old)):
-                    if var in old[index:]:
-                        first_index = old[index:].find(var)
-                        if not(old[index:][first_index + len(var):first_index + len(var) + 1].isnumeric()):
-                            old = old[:index+first_index] +\
-                                  str(substitution_map[var]) +\
-                                  old[index + first_index + len(var):]
-        return Formula.parse(old)
+        f = str(self)
+        if is_variable(Formula.parse(f).root) and Formula.parse(f).root in substitution_map:
+            f = str(substitution_map[Formula.parse(f).root])
+        elif is_unary(Formula.parse(f).root):
+            first = str(Formula.parse(f).first.substitute_variables(substitution_map))
+            f = Formula.parse(f).root + first
+        elif is_binary(Formula.parse(f).root):
+            first = str(Formula.parse(f).first.substitute_variables(substitution_map))
+            second = str(Formula.parse(f).second.substitute_variables(substitution_map))
+            f = "(" + first + Formula.parse(f).root + second + ")"
+        return Formula.parse(f)
 
     def substitute_operators(
             self, substitution_map: Mapping[str, Formula]) -> Formula:
@@ -411,7 +410,6 @@ class Formula:
         if old[0] is "~":
             if "~" in substitution_map:
                 ret = Formula.parse(old[1:]).substitute_operators(substitution_map)
-                print(ret)
                 return substitution_map["~"].substitute_variables({"p": ret})
             else:
                 return Formula.parse("~" + str(Formula.parse(old[1:]).substitute_operators(substitution_map)))
@@ -422,14 +420,14 @@ class Formula:
         if old[0] == "(":
             tup = Formula.parse_prefix(old[1:])
             rest, p = (tup[1], tup[0].substitute_operators(substitution_map))
-            if rest[0:2] == "-|" and "-|" in substitution_map:
+            if rest[0:2] == "-|":
                 if "-|" in substitution_map:
                     old = sub_op(substitution_map["-|"], p, substitution_map, rest[2:])
                 else:
                     old = "(" + str(p) + "-|" + str(
                         Formula.parse_prefix(rest[2:])[0].substitute_operators(substitution_map)) + \
                           Formula.parse_prefix(rest[2:])[1]
-            if rest[0:2] == "-&" and "-&" in substitution_map:
+            if rest[0:2] == "-&":
                 if "-&" in substitution_map:
                     old = sub_op(substitution_map["-&"], p, substitution_map, rest[2:])
                 else:

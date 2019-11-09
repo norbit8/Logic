@@ -54,8 +54,6 @@ def test_to_nand(debug=False):
             print('Testing conversion of', f, "to a formula using only '-&'.")
         f = Formula.parse(f)
         ff = to_nand(f)
-        print("GOT: " + str(ff))
-
         assert ff.operators().issubset({'-&'}), \
                str(ff) + ' contains wrong operators'
         assert is_tautology(Formula('<->', f, ff))
