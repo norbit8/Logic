@@ -39,6 +39,35 @@ def variables(model: Model) -> AbstractSet[str]:
     assert is_model(model)
     return model.keys()
 
+def and_op(righty, lefty, model):
+    righty = Formula.parse_prefix(righty[1:])[0]
+    righty = evaluate(righty, model)
+    return righty and lefty
+
+def or_op(righty, lefty, model):
+    righty = Formula.parse_prefix(righty[1:])[0]
+    righty = evaluate(righty, model)
+    return righty or lefty
+
+def xor_op(righty, lefty, model):
+    righty = Formula.parse_prefix(righty[1:])[0]
+    righty = evaluate(righty, model)
+    return righty != lefty
+
+def iff_op(righty, lefty, model):
+    righty = Formula.parse_prefix(righty[3:])[0]
+    righty = evaluate(righty, model)
+    if (lefty is False and righty is False) or (lefty is True and righty is True):
+        return True
+    return False
+
+def if_op(righty, lefty, model):
+    righty = Formula.parse_prefix(righty[2:])[0]
+    righty = evaluate(righty, model)
+    if lefty is True and righty is False:
+        return False
+    return True
+
 def evaluate(formula: Formula, model: Model) -> bool:
     """Calculates the truth value of the given formula in the given model.
 
@@ -78,19 +107,19 @@ def evaluate(formula: Formula, model: Model) -> bool:
         lefty = evaluate(parsed[0], model)
         righty = parsed[1]
         if righty[0] is '&':
-            righty = Formula.parse_prefix(righty[1:])[0]
-            righty = evaluate(righty, model)
-            return righty and lefty
+            return and_op(righty, lefty, model)
         if righty[0] is '|':
-            righty = Formula.parse_prefix(righty[1:])[0]
-            righty = evaluate(righty, model)
-            return righty or lefty
-        if righty[0] is '-':
-            righty = Formula.parse_prefix(righty[2:])[0]
-            righty = evaluate(righty, model)
-            if lefty is True and righty is False:
-                return False
-            return True
+            return or_op(righty, lefty, model)
+        if righty[0] is '-' and righty[1] is '>':
+            return if_op(righty, lefty, model)
+        if righty[0] is '-' and righty[1] is '|':
+            return not(or_op(righty[1:], lefty, model))
+        if righty[0] is '-' and righty[1] is '&':
+            return not(and_op(righty[1:], lefty, model))
+        if righty[0] is '<':
+            return iff_op(righty, lefty, model)
+        if righty[0] is '+':
+            return xor_op(righty, lefty, model)
 
 def all_models(variables: List[str]) -> Iterable[Model]:
     """Calculates all possible models over the given variables.

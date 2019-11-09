@@ -1,34 +1,35 @@
 # (c) This file is part of the course
 # Mathematical Logic through Programming
 # by Gonczarowski and Nisan.
-# File name: test_ex2.py
+# File name: test_ex1.py
 
-"""Tests all Chapter 2 tasks."""
+"""Tests all Chapter 1 tasks."""
 
-from propositions.semantics_test import *
+from propositions.syntax_test import *
 
 def test_task1(debug=False):
-    test_evaluate(debug)
+    test_repr(debug)
 
 def test_task2(debug=False):
-    test_all_models(debug)
+    test_variables(debug)
 
 def test_task3(debug=False):
-    test_truth_values(debug)
+    test_operators(debug)
 
 def test_task4(debug=False):
-    test_print_truth_table(debug)   
+    test_parse_prefix(debug)
 
 def test_task5(debug=False):
-    test_is_tautology(debug)
-    test_is_contradiction(debug)
-    test_is_satisfiable(debug)
+    test_is_formula(debug)
 
 def test_task6(debug=False):
-    test_synthesize_for_model(debug)
+    test_parse(debug)
 
 def test_task7(debug=False):
-    test_synthesize(debug)
+    test_polish()
+
+def test_task8(debug=False):
+    test_parse_polish()
 
 test_task1(True)
 test_task2(True)
@@ -36,4 +37,6 @@ test_task3(True)
 test_task4(True)
 test_task5(True)
 test_task6(True)
-test_task7(True)
+
+#test_task7(True) # Optional
+#test_task8(True) # Optional
