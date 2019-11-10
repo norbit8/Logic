@@ -18,9 +18,6 @@ IFF = Formula.parse("((p&q)|~(p|q))")
 XOR = Formula.parse("((p&~q)|(~p&q))")
 OR = Formula.parse("~(~p&~q)")
 
-
-
-
 NOT_NAND = Formula.parse("(p-&p)")
 AND_NAND = Formula.parse("((p-&q)-&(p-&q))")
 OR_NAND = Formula.parse("((p-&p)-&(q-&q))")
@@ -35,9 +32,9 @@ AND_IF = Formula.parse("((p->(q->F))->F)")
 TO_NOT_AND_OR = {"->": IF, "<->": IFF, "+": XOR, "-&": NAND, "-|": NOR, "T": TRUE, "F": FALSE}
 TO_NOT_AND = {"|": OR}
 
-TO_NAND_DICT = {"~": NOT_NAND, "&": AND_NAND, "|": OR_NAND}
-TO_IMPLIES_NOT_DICT = {"&": AND_IN, "|": OR_IN}
-TO_IMPLIES_F_DICT = {"~": NOT_IF, "&": AND_IF, "|": OR_IF}
+NAND_DICT = {"~": NOT_NAND, "&": AND_NAND, "|": OR_NAND}
+IMPLIES_NOT_DICT = {"&": AND_IN, "|": OR_IN}
+IMPLIES_FALSE_DICT = {"~": NOT_IF, "&": AND_IF, "|": OR_IF}
 
 def to_not_and_or(formula: Formula) -> Formula:
     """Syntactically converts the given formula to an equivalent formula that
@@ -67,8 +64,7 @@ def to_not_and(formula: Formula) -> Formula:
         contains no constants or operators beyond ``'~'`` and ``'&'``.
     """
     # Task 3.6a
-    TO_NOT_AND_OR["F"] = Formula.parse("(p&~p)")
-    return formula.substitute_operators(TO_NOT_AND_OR).substitute_operators(TO_NOT_AND)
+    return to_not_and_or(formula).substitute_operators(TO_NOT_AND)
 
 
 def to_nand(formula: Formula) -> Formula:
@@ -83,8 +79,7 @@ def to_nand(formula: Formula) -> Formula:
         contains no constants or operators beyond ``'-&'``.
     """
     # Task 3.6b
-    TO_NOT_AND_OR["F"] = Formula.parse("(p&~p)")
-    return formula.substitute_operators(TO_NOT_AND_OR).substitute_operators(TO_NAND_DICT)
+    return to_not_and_or(formula).substitute_operators(NAND_DICT)
 
 def to_implies_not(formula: Formula) -> Formula:
     """Syntactically converts the given formula to an equivalent formula that
@@ -98,7 +93,7 @@ def to_implies_not(formula: Formula) -> Formula:
         contains no constants or operators beyond ``'->'`` and ``'~'``.
     """
     # Task 3.6c
-    return formula.substitute_operators(TO_NOT_AND_OR).substitute_operators(TO_IMPLIES_NOT_DICT)
+    return to_not_and_or(formula).substitute_operators(IMPLIES_NOT_DICT)
 
 def to_implies_false(formula: Formula) -> Formula:
     """Syntactically converts the given formula to an equivalent formula that
@@ -112,4 +107,4 @@ def to_implies_false(formula: Formula) -> Formula:
         contains no constants or operators beyond ``'->'`` and ``'F'``.
     """
     # Task 3.6d
-    return formula.substitute_operators(TO_NOT_AND_OR).substitute_operators(TO_IMPLIES_F_DICT)
+    return to_not_and_or(formula).substitute_operators(IMPLIES_FALSE_DICT)
