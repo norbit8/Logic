@@ -22,8 +22,8 @@ def test_task4(debug=False):
     test_specialize(debug)
 
 def test_task5(debug=False):
-    test_merge_specialization_maps(debug)
-    # test_formula_specialization_map(debug)
+    # test_merge_specialization_maps(debug)
+    test_formula_specialization_map(debug)
     # test_specialization_map(debug)
     # test_is_specialization_of(debug)
 

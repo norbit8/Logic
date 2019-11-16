@@ -156,12 +156,8 @@ class InferenceRule:
                 new_map[special_map1] = specialization_map1[special_map1]
         for special_map2 in map2:
             new_map[special_map2] = map2[special_map2]
-
         return new_map
 
-
-
-        
     @staticmethod
     def formula_specialization_map(general: Formula, specialization: Formula) \
             -> Union[SpecializationMap, None]:
@@ -177,6 +173,18 @@ class InferenceRule:
             in fact not a specialization of `general`.
         """
         # Task 4.5b
+        if is_variable(general.root):
+            return {general.root: specialization}
+        res = None
+        if is_binary(general.root) and general.root == specialization.root:
+            res = InferenceRule.merge_specialization_maps(
+                InferenceRule.formula_specialization_map(general.first, specialization.first),
+                InferenceRule.formula_specialization_map(general.second, specialization.second))
+        elif is_unary(general.root) and general.root == specialization.root:
+            res = InferenceRule.formula_specialization_map(general.first, specialization.first)
+        elif is_constant(general.root) and general.root == specialization.root:
+            return {}
+        return res
 
     def specialization_map(self, specialization: InferenceRule) -> \
             Union[SpecializationMap, None]:
@@ -191,6 +199,7 @@ class InferenceRule:
             in fact not a specialization of the current rule.
         """
         # Task 4.5c
+        
 
     def is_specialization_of(self, general: InferenceRule) -> bool:
         """Checks if the current inference rule is a specialization of the given
