@@ -246,6 +246,7 @@ def test_is_specialization_of(debug=False):
         candidate = InferenceRule(assumptions, conclusion)
         if debug:
             print('Testing whether', candidate, 'is a special case of', rule)
+        print(candidate.is_specialization_of(rule), "VS", value, ":", candidate, rule)
         assert candidate.is_specialization_of(rule) == value
             
     # Test 4
@@ -366,7 +367,7 @@ def test_rule_for_line(debug=False):
     for i in range(len(z)):
         if debug:
             print("Checking rule of line", i, ":", proof.lines[i])
-        assert proof.rule_for_line(i) == z[i][1]   
+        assert proof.rule_for_line(i) == z[i][1]
 
 def test_is_line_valid(debug=False):
     x1 = Formula.parse('x')

@@ -92,7 +92,6 @@ class InferenceRule:
         for formula in self.assumptions:
             var_set = var_set.union(formula.variables())
         var_set = var_set.union(self.conclusion.variables())
-        print(var_set)
         return var_set
 
     def specialize(self, specialization_map: SpecializationMap) -> \
@@ -199,7 +198,26 @@ class InferenceRule:
             in fact not a specialization of the current rule.
         """
         # Task 4.5c
-        
+        if len(specialization.assumptions) != len(self.assumptions):
+            return None
+        possible_res = None
+        special_assumptions = specialization.assumptions
+        res = InferenceRule.formula_specialization_map(self.conclusion, specialization.conclusion)
+        for assumption1 in self.assumptions:
+            for assumption2 in special_assumptions:
+                possible_res = InferenceRule.formula_specialization_map(assumption1, assumption2)
+                if possible_res is not None:
+                    count = 0
+                    new_assumptions = []
+                    for x in special_assumptions:
+                        if count == 0 and x is assumption2:
+                            count = 1
+                        else:
+                            new_assumptions.append(x)
+                    special_assumptions = new_assumptions
+                    break
+            res = InferenceRule.merge_specialization_maps(res, possible_res)
+        return res
 
     def is_specialization_of(self, general: InferenceRule) -> bool:
         """Checks if the current inference rule is a specialization of the given
@@ -350,6 +368,11 @@ class Proof:
         """
         assert line_number < len(self.lines)
         # Task 4.6a
+        line = self.lines[line_number]
+        if line.is_assumption():
+            return None
+        return InferenceRule([self.lines[index_of_assumption].formula for index_of_assumption in line.assumptions],
+                             line.formula)
 
     def is_line_valid(self, line_number: int) -> bool:
         """Checks if the specified line validly follows from its justifications.
@@ -374,7 +397,26 @@ class Proof:
         """
         assert line_number < len(self.lines)
         # Task 4.6b
-        
+        #If the specified line is justified as an assumption, then ``True``
+        # if the formula justified by this line is an assumption of the
+        # current proof
+        if self.lines[line_number].is_assumption():
+            if self.lines[line_number].formula in self.statement.assumptions:
+                return True
+            return False
+        # The rule specified for that line is one of the allowed inference rules in the current proof
+        if not(self.lines[line_number].rule in self.rules):
+            return False
+        rule = self.rule_for_line(line_number)
+        # if any assumption is after the specified line its wrong in so many levels
+        for index in self.lines[line_number].assumptions:
+            if index >= line_number:
+                return False
+        # number 2 in the docstring last lines
+        if not(rule.is_specialization_of(self.lines[line_number].rule)):
+            return False
+        return True
+
     def is_valid(self) -> bool:
         """Checks if the current proof is a valid proof of its claimed statement
         via its inference rules.
@@ -384,6 +426,12 @@ class Proof:
             statement via its inference rules, ``False`` otherwise.
         """
         # Task 4.6c
+        for line_number in range(len(self.lines)):
+            if not(self.is_line_valid(line_number)):
+                return False
+        if not(self.lines[len(self.lines)-1].formula == self.statement.conclusion):
+            return False
+        return True
 
 # Chapter 5 tasks
 

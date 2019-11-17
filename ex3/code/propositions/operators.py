@@ -52,6 +52,7 @@ def to_not_and_or(formula: Formula) -> Formula:
     return formula.substitute_operators(TO_NOT_AND_OR)
 
 
+
 def to_not_and(formula: Formula) -> Formula:
     """Syntactically converts the given formula to an equivalent formula that
     contains no constants or operators beyond ``'~'`` and ``'&'``.
