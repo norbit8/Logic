@@ -450,6 +450,8 @@ def prove_specialization(proof: Proof, specialization: InferenceRule) -> Proof:
     assert proof.is_valid()
     assert specialization.is_specialization_of(proof.statement)
     # Task 5.1
+    special_m = proof.statment.specialization_map(specialization)
+    newProof = Proof()
 
 def inline_proof_once(main_proof: Proof, line_number: int, lemma_proof: Proof) \
     -> Proof:
