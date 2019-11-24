@@ -450,8 +450,14 @@ def prove_specialization(proof: Proof, specialization: InferenceRule) -> Proof:
     assert proof.is_valid()
     assert specialization.is_specialization_of(proof.statement)
     # Task 5.1
-    special_m = proof.statment.specialization_map(specialization)
-    newProof = Proof()
+    special_m = proof.statement.specialization_map(specialization)
+    new_lines = list(map(lambda line: Proof.Line(line.formula.substitute_variables(special_m),
+                                                 (line.rule if (hasattr(line, "rule") and
+                                                                line.rule is not None) else None),
+                                                 line.assumptions if (hasattr(line, 'assumptions') and
+                                                                      line.assumptions is not None) else None),
+                         proof.lines))
+    return Proof(specialization, proof.rules, new_lines)
 
 def inline_proof_once(main_proof: Proof, line_number: int, lemma_proof: Proof) \
     -> Proof:
@@ -480,6 +486,33 @@ def inline_proof_once(main_proof: Proof, line_number: int, lemma_proof: Proof) \
     assert main_proof.lines[line_number].rule == lemma_proof.statement
     assert lemma_proof.is_valid()
     # Task 5.2a
+    new_rules = main_proof.rules.union(lemma_proof.rules) # RUR'
+    new_lines = list(main_proof.lines[:line_number]) # (1) unmodified lines
+    special_map = InferenceRule.formula_specialization_map(main_proof.lines[line_number].rule.conclusion,
+                                                           main_proof.lines[line_number].formula)
+    for line in lemma_proof.lines[:]: # (2)
+        if line.is_assumption():
+            index = lemma_proof.statement.assumptions.index(line.formula)
+            line_index = main_proof.lines[line_number].assumptions[index]
+            new_lines.append(main_proof.lines[line_index])
+        else:
+            new_asumptions = tuple(map(lambda number: number + line_number, line.assumptions)) \
+                if (hasattr(line, 'assumptions') and line.assumptions is not None) else None
+            new_rule = line.rule if (hasattr(line, 'rule') and line.rule is not None) else None
+            new_lines.append(Proof.Line(line.formula.substitute_variables(special_map), new_rule, new_asumptions))
+
+    proper_number = len(lemma_proof.lines) - 1
+    for line in main_proof.lines[line_number + 1:]: # (3) check if its before
+        new_assumptions = None
+        if hasattr(line, 'assumptions'):
+            new_assumptions = []
+            for number in line.assumptions:
+                if number < line_number:
+                    new_assumptions.append(number)
+                else:
+                    new_assumptions.append(number + proper_number)
+        new_lines.append(Proof.Line(line.formula, line.rule, new_assumptions))
+    return Proof(main_proof.statement, new_rules, new_lines)
 
 def inline_proof(main_proof: Proof, lemma_proof: Proof) -> Proof:
     """Inlines the given proof of a "lemma" inference rule into the given proof
@@ -500,3 +533,23 @@ def inline_proof(main_proof: Proof, lemma_proof: Proof) -> Proof:
         `lemma_proof`.
     """
     # Task 5.2b
+    counter = 0
+    # counting how many lines to swap
+    for line_number, line in enumerate(main_proof.lines):
+        if not(line.is_assumption()):
+            if line.rule == lemma_proof.statement:
+                counter += 1
+    line = 0
+    # swapping all the lines
+    while counter != 0:
+        if not(main_proof.lines[line].is_assumption()):
+            if main_proof.lines[line].rule == lemma_proof.statement:
+                main_proof = inline_proof_once(main_proof, line, lemma_proof)
+                counter -= 1
+                line = -1
+        line = line + 1
+    # getting all the rules of lemma and main proof together
+    rules = main_proof.rules.union(lemma_proof.rules).difference(
+        {lemma_proof.statement})
+    res_proof = Proof(main_proof.statement, rules, main_proof.lines)
+    return res_proof
