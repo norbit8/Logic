@@ -192,6 +192,7 @@ def test_remove_assumption(debug=False):
                 break
             pr = prove_from_encoding(rb)
             p = inline_proof(p, pr)
+
         assert p.is_valid(), offending_line(p)
         if debug:
             print("Testing remove_assumption on:", p)

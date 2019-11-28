@@ -34,6 +34,15 @@ def prove_corollary(antecedent_proof: Proof, consequent: Formula,
                          Formula('->', antecedent_proof.statement.conclusion,
                                  consequent)).is_specialization_of(conditional)
     # Task 5.3a
+    previous_proof = antecedent_proof.lines
+    this_gorer = InferenceRule("", Formula.parse("(" + str(antecedent_proof.statement.conclusion) + "->" +
+                                                 str(consequent) + ")"))
+    special = InferenceRule.formula_specialization_map(conditional.conclusion, this_gorer.conclusion)
+    after_line = Proof.Line(conditional.conclusion.substitute_variables(special), conditional, ())
+    mp_line = Proof.Line(consequent, MP, (len(previous_proof) - 1, len(previous_proof)))
+    return Proof(InferenceRule(antecedent_proof.statement.assumptions, consequent),
+                 antecedent_proof.rules.union({conditional}),
+                 previous_proof + (after_line, mp_line))
 
 def combine_proofs(antecedent1_proof: Proof, antecedent2_proof: Proof,
                    consequent: Formula, double_conditional: InferenceRule) -> \
@@ -69,6 +78,31 @@ def combine_proofs(antecedent1_proof: Proof, antecedent2_proof: Proof,
         Formula('->', antecedent2_proof.statement.conclusion, consequent))
         ).is_specialization_of(double_conditional)
     # Task 5.3b
+    new_proof2_lines = []
+    for line in antecedent2_proof.lines:
+        new_line = line
+        if not(line.is_assumption()):
+            new_line = Proof.Line(line.formula, line.rule, tuple(map(lambda num : num + len(antecedent1_proof.lines),
+                                                                     line.assumptions)))
+        new_proof2_lines.append(new_line)
+    prev_proofs_lines = antecedent1_proof.lines + tuple(new_proof2_lines)
+    this_gorer = InferenceRule("", Formula.parse("(" + str(antecedent1_proof.statement.conclusion) + "->(" +
+                                                 str(antecedent2_proof.statement.conclusion) + "->" +
+                                                 str(consequent) + "))"))
+    special = InferenceRule.formula_specialization_map(double_conditional.conclusion, this_gorer.conclusion)
+    after_line = Proof.Line(double_conditional.conclusion.substitute_variables(special), double_conditional, ())
+    another_line = InferenceRule("", Formula.parse("(" + str(antecedent2_proof.statement.conclusion) + "->" +
+                                                         str(consequent) + ")"))
+
+    special2 = InferenceRule.formula_specialization_map(MP.conclusion, another_line.conclusion)
+    after_line2 = Proof.Line(MP.conclusion.substitute_variables(special2), MP, (len(antecedent1_proof.lines) - 1,
+                                          len(antecedent1_proof.lines) + len(antecedent2_proof.lines)))
+    mp_line = Proof.Line(consequent, MP, (len(antecedent1_proof.lines) + len(antecedent2_proof.lines) - 1,
+                                          len(antecedent1_proof.lines) + len(antecedent2_proof.lines) + 1))
+    return Proof(InferenceRule(antecedent1_proof.statement.assumptions,
+                               consequent),
+                               antecedent2_proof.rules.union(antecedent1_proof.rules.union({double_conditional})),
+                               prev_proofs_lines + (after_line, after_line2, mp_line))
 
 def remove_assumption(proof: Proof) -> Proof:
     """Converts a proof of some `conclusion` formula, the last assumption of
@@ -95,6 +129,40 @@ def remove_assumption(proof: Proof) -> Proof:
     for rule in proof.rules:
         assert rule == MP or len(rule.assumptions) == 0
     # Task 5.4
+    rules = proof.rules # all the assumptions
+    assumption = proof.statement.assumptions[-1] # phi
+    other_assumptions = proof.statement.assumptions[:-1] # all other assumptions denoted by * in the lecture (NN)
+    new_statement = InferenceRule(other_assumptions, Formula('->', assumption, proof.statement.conclusion)) # new proof statement (without phi)
+    lines = []
+    table_indexer = []
+    for line in proof.lines:
+        # case 2 - line is the assumption that we need to prove assumption -> conclusion
+        if line.formula == assumption:
+            formula = Formula("->", assumption, line.formula)
+            lines.append(Proof.Line(formula, I0, ()))
+        # case 3 - line is MP
+        elif line.rule == MP:
+            mp_line1 = lines[table_indexer[line.assumptions[0]]].formula
+            mp_line2 = lines[table_indexer[line.assumptions[1]]].formula
+            f0 = Formula("->", assumption, line.formula)
+            f1 = Formula("->", mp_line1, f0)
+            f2 = Formula("->", mp_line2, f1)
+            l0 = Proof.Line(f2, D, [])
+            l1 = Proof.Line(f1, MP, [table_indexer[line.assumptions[1]], len(lines)])
+            l2 = Proof.Line(f0, MP, [table_indexer[line.assumptions[0]], len(lines) + 1])
+            lines.append(l0)
+            lines.append(l1)
+            lines.append(l2)
+        # case 1 - line is one of the assumptions in the proof
+        # and
+        # case 4 - line is inference rule without any assumptions
+        else:
+            lines.append(line)
+            lines.append(Proof.Line(Formula("->", line.formula, (Formula("->", assumption, line.formula))), I1, ()))
+            lines.append(Proof.Line(Formula('->', assumption, line.formula), MP, (len(lines) - 2, len(lines) - 1)))
+        table_indexer.append(len(lines) - 1)
+    return Proof(new_statement, rules.union({MP,I0,I1,D}) ,lines)
+
 
 def proof_from_inconsistency(proof_of_affirmation: Proof,
                              proof_of_negation: Proof, conclusion: Formula) -> \
@@ -121,6 +189,7 @@ def proof_from_inconsistency(proof_of_affirmation: Proof,
            proof_of_negation.statement.conclusion
     assert proof_of_affirmation.rules == proof_of_negation.rules
     # Task 5.6
+
 
 def prove_by_contradiction(proof: Proof) -> Proof:
     """Converts the given proof of ``'~(p->p)'``, the last assumption of which

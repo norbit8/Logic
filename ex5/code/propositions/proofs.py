@@ -490,6 +490,11 @@ def inline_proof_once(main_proof: Proof, line_number: int, lemma_proof: Proof) \
     new_lines = list(main_proof.lines[:line_number]) # (1) unmodified lines
     special_map = InferenceRule.formula_specialization_map(main_proof.lines[line_number].rule.conclusion,
                                                            main_proof.lines[line_number].formula)
+    if main_proof.lines[line_number].is_assumption:
+        for index, number in enumerate(main_proof.lines[line_number].assumptions):
+            spec = InferenceRule.formula_specialization_map(main_proof.lines[line_number].rule.assumptions[index],
+                                                            main_proof.lines[number].formula)
+            special_map = InferenceRule.merge_specialization_maps(special_map, spec)
     for line in lemma_proof.lines[:]: # (2)
         if line.is_assumption():
             index = lemma_proof.statement.assumptions.index(line.formula)
