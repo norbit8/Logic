@@ -189,7 +189,36 @@ def proof_from_inconsistency(proof_of_affirmation: Proof,
            proof_of_negation.statement.conclusion
     assert proof_of_affirmation.rules == proof_of_negation.rules
     # Task 5.6
+    first_proof_lines = proof_of_affirmation.lines
+    second_proof_lines = []
+    for line in proof_of_negation.lines:
+        if not(line.is_assumption()):
+            new_line = Proof.Line(line.formula, line.rule, tuple(map(
+                lambda l_number: l_number + len(first_proof_lines), line.assumptions)))
+            second_proof_lines.append(new_line)
+            continue
+        second_proof_lines.append(line)
+    i2_line = Proof.Line(Formula('->', proof_of_negation.statement.conclusion,
+                                 Formula('->', proof_of_affirmation.statement.conclusion, conclusion)), I2, ())
+    mp_once = Proof.Line(Formula('->', proof_of_affirmation.statement.conclusion, conclusion),
+                         MP,
+                         (len(first_proof_lines) + len(second_proof_lines) - 1,
+                          len(first_proof_lines) + len(second_proof_lines)))
+    mp_twice = Proof.Line(conclusion, MP, (len(first_proof_lines) - 1,
+                                           len(first_proof_lines) + len(second_proof_lines) + 1))
+    return Proof(InferenceRule(proof_of_affirmation.statement.assumptions, conclusion),
+                 proof_of_negation.rules.union({I2}),
+                 first_proof_lines + tuple(second_proof_lines) + (i2_line, mp_once, mp_twice))
 
+def implies(p, q):
+    """
+    Returns (p->q).
+    :param p: first
+    :param q: second
+    :return: (p->q)
+    """
+    assert type(p) == type(q) == Formula
+    return Formula('->', p, q)
 
 def prove_by_contradiction(proof: Proof) -> Proof:
     """Converts the given proof of ``'~(p->p)'``, the last assumption of which
@@ -218,3 +247,13 @@ def prove_by_contradiction(proof: Proof) -> Proof:
     for rule in proof.rules:
         assert rule == MP or len(rule.assumptions) == 0
     # Task 5.7
+    proving = proof.statement.assumptions[-1].first
+    statement = InferenceRule(proof.statement.assumptions[:-1], proving)
+    rules = proof.rules.union({I0, I1, D, MP, N})
+    new_proof = remove_assumption(proof)
+    lines = list(new_proof.lines)
+    lines.append(Proof.Line(N.specialize({'q': proving, 'p': I0.conclusion}).conclusion, N, ()))
+    lines.append(Proof.Line(Formula('->', I0.conclusion, proving), MP, (len(lines) - 2, len(lines) - 1)))
+    lines.append(Proof.Line(I0.conclusion, I0, ()))
+    lines.append(Proof.Line(proving, MP, (len(lines) - 1, len(lines) - 2)))
+    return Proof(statement, rules, lines)
