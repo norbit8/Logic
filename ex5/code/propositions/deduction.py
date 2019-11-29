@@ -210,15 +210,6 @@ def proof_from_inconsistency(proof_of_affirmation: Proof,
                  proof_of_negation.rules.union({I2}),
                  first_proof_lines + tuple(second_proof_lines) + (i2_line, mp_once, mp_twice))
 
-def implies(p, q):
-    """
-    Returns (p->q).
-    :param p: first
-    :param q: second
-    :return: (p->q)
-    """
-    assert type(p) == type(q) == Formula
-    return Formula('->', p, q)
 
 def prove_by_contradiction(proof: Proof) -> Proof:
     """Converts the given proof of ``'~(p->p)'``, the last assumption of which
