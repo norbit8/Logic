@@ -56,13 +56,14 @@ def prove_in_model(formula: Formula, model:Model) -> Proof:
     assert formula.operators().issubset({'->', '~'})
     assert is_model(model)
     # Task 6.1b
+    assum = formulae_capturing_model(model)
     if len(formula.variables()) == 1 and str(formula) in model.keys():
         if model[str(formula)]:
-            return Proof(InferenceRule([formula], formula), AXIOMATIC_SYSTEM, [Proof.Line(formula)])
+            return Proof(InferenceRule(assum, formula), AXIOMATIC_SYSTEM, [Proof.Line(formula)])
         neg_formula = Formula.parse("~" + str(formula))
-        return Proof(InferenceRule([neg_formula], neg_formula),
+        return Proof(InferenceRule(assum, neg_formula),
                      AXIOMATIC_SYSTEM, [Proof.Line(neg_formula)])
-    if str(formula)[0] == "~":
+    elif str(formula)[0] == "~":
         if evaluate(formula, model):
             return prove_in_model(Formula.parse(str(formula)[1:]), model)
         else:
@@ -71,15 +72,47 @@ def prove_in_model(formula: Formula, model:Model) -> Proof:
             specialized_nn = NN.conclusion.substitute_variables({'p': psi_proof.statement.conclusion})
             line_nn = Proof.Line(specialized_nn, NN, ())
             line_mp = Proof.Line(specialized_nn.second, MP, (len(psi_proof_lines) - 1, len(psi_proof_lines)))
-            print(Proof(InferenceRule((),
-                                       specialized_nn.second),
-                         AXIOMATIC_SYSTEM,
-                         list(psi_proof_lines) + [line_nn] + [line_mp]))
-            assum = formulae_capturing_model(model)
-            return Proof(InferenceRule((assum),
+            return Proof(InferenceRule(assum,
                                        specialized_nn.second),
                          AXIOMATIC_SYSTEM,
                          list(psi_proof_lines) + [line_nn] + [line_mp])
+    else:
+        if evaluate(formula, model):
+            if not evaluate(formula.first, model):  # case 1
+                phi1_proof = prove_in_model(formula.first, model)
+                phi1_proof_lines = phi1_proof.lines
+                specialized_i2 = I2.conclusion.substitute_variables({'p': phi1_proof.statement.conclusion,
+                                                                     'q': formula.second})
+                line_i2 = Proof.Line(specialized_i2, I2, ())
+                line_mp = Proof.Line(specialized_i2.second, MP, (len(phi1_proof_lines) - 1, len(phi1_proof_lines)))
+                return Proof(InferenceRule(assum,
+                                           specialized_i2.second),
+                             AXIOMATIC_SYSTEM,
+                             list(phi1_proof_lines) + [line_i2] + [line_mp])
+            else:
+                phi2_proof = prove_in_model(formula.second, model)
+                phi2_proof_lines = phi2_proof.lines
+                specialized_i1 = I1.conclusion.substitute_variables({'q': phi2_proof.statement.conclusion,
+                                                                     'p': formula.second})
+                line_i2 = Proof.Line(specialized_i1, I1, ())
+                line_mp = Proof.Line(specialized_i1.second, MP, (len(phi2_proof_lines) - 1, len(phi2_proof_lines)))
+                return Proof(InferenceRule(assum,
+                                           specialized_i1.second),
+                             AXIOMATIC_SYSTEM,
+                             list(phi2_proof_lines) + [line_i2] + [line_mp])
+        else:
+            phi1_proof = prove_in_model(formula.first, model)
+            phi1_proof_lines = phi1_proof.lines
+            phi2_proof = prove_in_model(formula.second, model)
+            phi2_proof_lines = phi2_proof.lines
+            specialized_NI = NI.conclusion.substitute_variables({'p': formula.first,
+                                                                 'q': phi2_proof.statement.conclusion})
+            line_ni = Proof.Line(specialized_NI, NI, ())
+            line_mp1 = Proof.Line(specialized_NI.second, MP,
+                                  (len(phi1_proof_lines) - 1, len(phi1_proof_lines) + len(phi2_proof_lines) - 1))
+            line_mp2 = #TODO
+
+
 def reduce_assumption(proof_from_affirmation: Proof,
                       proof_from_negation: Proof) -> Proof:
     """Combines the given two proofs, both of the same formula `conclusion` and
