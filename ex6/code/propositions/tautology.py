@@ -62,7 +62,24 @@ def prove_in_model(formula: Formula, model:Model) -> Proof:
         neg_formula = Formula.parse("~" + str(formula))
         return Proof(InferenceRule([neg_formula], neg_formula),
                      AXIOMATIC_SYSTEM, [Proof.Line(neg_formula)])
-
+    if str(formula)[0] == "~":
+        if evaluate(formula, model):
+            return prove_in_model(Formula.parse(str(formula)[1:]), model)
+        else:
+            psi_proof = prove_in_model(Formula.parse(str(formula)[1:]), model)
+            psi_proof_lines = psi_proof.lines
+            specialized_nn = NN.conclusion.substitute_variables({'p': psi_proof.statement.conclusion})
+            line_nn = Proof.Line(specialized_nn, NN, ())
+            line_mp = Proof.Line(specialized_nn.second, MP, (len(psi_proof_lines) - 1, len(psi_proof_lines)))
+            print(Proof(InferenceRule((),
+                                       specialized_nn.second),
+                         AXIOMATIC_SYSTEM,
+                         list(psi_proof_lines) + [line_nn] + [line_mp]))
+            assum = formulae_capturing_model(model)
+            return Proof(InferenceRule((assum),
+                                       specialized_nn.second),
+                         AXIOMATIC_SYSTEM,
+                         list(psi_proof_lines) + [line_nn] + [line_mp])
 def reduce_assumption(proof_from_affirmation: Proof,
                       proof_from_negation: Proof) -> Proof:
     """Combines the given two proofs, both of the same formula `conclusion` and
