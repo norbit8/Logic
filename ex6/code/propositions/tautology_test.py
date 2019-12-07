@@ -153,6 +153,7 @@ def test_encode_as_formula(debug=False):
             if debug:
                 print("Testing encode_as_formula on:", r)
             ff = encode_as_formula(r)
+            print("SHOULD BE :", f)
             assert f == ff
 
 def test_prove_sound_inference(debug=False):

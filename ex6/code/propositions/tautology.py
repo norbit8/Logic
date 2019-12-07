@@ -16,6 +16,22 @@ from propositions.semantics import *
 from propositions.operators import *
 from propositions.axiomatic_systems import *
 
+def proof_merger(first_proof: Proof, second_proof: Proof) -> List[Proof.Line]:
+    """
+    Combine two proof into one and and return the lines
+    :param first_proof: first proof
+    :param second_proof: second
+    :return: list of proof lines
+    """
+    proof_lines = []
+    for line in second_proof.lines:
+        new_line = line
+        if not(line.is_assumption()):
+            new_line = Proof.Line(line.formula, line.rule, tuple(map(lambda num: num + len(first_proof.lines),
+                                                                     line.assumptions)))
+        proof_lines.append(new_line)
+    return list(first_proof.lines) + proof_lines
+
 def formulae_capturing_model(model: Model) -> List[Formula]:
     """Computes the formulae that capture the given model: ``'``\ `x`\ ``'``
     for each variable `x` that is assigned the value ``True`` in the given
@@ -81,7 +97,7 @@ def prove_in_model(formula: Formula, model:Model) -> Proof:
             if not evaluate(formula.first, model):  # case 1
                 phi1_proof = prove_in_model(formula.first, model)
                 phi1_proof_lines = phi1_proof.lines
-                specialized_i2 = I2.conclusion.substitute_variables({'p': phi1_proof.statement.conclusion,
+                specialized_i2 = I2.conclusion.substitute_variables({'p': formula.first,
                                                                      'q': formula.second})
                 line_i2 = Proof.Line(specialized_i2, I2, ())
                 line_mp = Proof.Line(specialized_i2.second, MP, (len(phi1_proof_lines) - 1, len(phi1_proof_lines)))
@@ -93,7 +109,7 @@ def prove_in_model(formula: Formula, model:Model) -> Proof:
                 phi2_proof = prove_in_model(formula.second, model)
                 phi2_proof_lines = phi2_proof.lines
                 specialized_i1 = I1.conclusion.substitute_variables({'q': phi2_proof.statement.conclusion,
-                                                                     'p': formula.second})
+                                                                     'p': formula.first})
                 line_i2 = Proof.Line(specialized_i1, I1, ())
                 line_mp = Proof.Line(specialized_i1.second, MP, (len(phi2_proof_lines) - 1, len(phi2_proof_lines)))
                 return Proof(InferenceRule(assum,
@@ -105,13 +121,18 @@ def prove_in_model(formula: Formula, model:Model) -> Proof:
             phi1_proof_lines = phi1_proof.lines
             phi2_proof = prove_in_model(formula.second, model)
             phi2_proof_lines = phi2_proof.lines
-            specialized_NI = NI.conclusion.substitute_variables({'p': formula.first,
-                                                                 'q': phi2_proof.statement.conclusion})
-            line_ni = Proof.Line(specialized_NI, NI, ())
-            line_mp1 = Proof.Line(specialized_NI.second, MP,
-                                  (len(phi1_proof_lines) - 1, len(phi1_proof_lines) + len(phi2_proof_lines) - 1))
-            line_mp2 = #TODO
-
+            specialized_ni = NI.conclusion.substitute_variables({'p': formula.first,
+                                                                 'q': formula.second})
+            line_ni = Proof.Line(specialized_ni, NI, ())
+            line_mp1 = Proof.Line(specialized_ni.second, MP,
+                                  (len(phi1_proof_lines) - 1, len(phi1_proof_lines) + len(phi2_proof_lines)))
+            line_mp2 = Proof.Line(specialized_ni.second.second, MP,
+                                  (len(phi1_proof_lines) + len(phi2_proof_lines) - 1,
+                                   len(phi1_proof_lines) + len(phi2_proof_lines) + 1))
+            return Proof(InferenceRule(assum,
+                                       line_mp2.formula),
+                         AXIOMATIC_SYSTEM,
+                         proof_merger(phi1_proof, phi2_proof) + [line_ni, line_mp1, line_mp2])
 
 def reduce_assumption(proof_from_affirmation: Proof,
                       proof_from_negation: Proof) -> Proof:
@@ -154,6 +175,17 @@ def reduce_assumption(proof_from_affirmation: Proof,
            proof_from_negation.statement.assumptions[-1]
     assert proof_from_affirmation.rules == proof_from_negation.rules
     # Task 6.2
+    proof1 = remove_assumption(proof_from_affirmation)
+    proof2 = remove_assumption(proof_from_negation)
+    proof_lines = proof_merger(proof1, proof2)
+    specialize_r = R.conclusion.substitute_variables({'p': proof_from_affirmation.statement.conclusion,
+                                                      'q': proof1.statement.conclusion.first})
+    line_r = Proof.Line(specialize_r, R, ())
+    line_mp1 = Proof.Line(specialize_r.second, MP, (len(proof1.lines) - 1, len(proof_lines)))
+    line_mp2 = Proof.Line(specialize_r.second.second, MP, (len(proof_lines) - 1, len(proof_lines) + 1))
+    return Proof(InferenceRule(proof1.statement.assumptions, specialize_r.second.second),
+                 AXIOMATIC_SYSTEM,
+                 proof_lines + [line_r, line_mp1, line_mp2])
 
 def prove_tautology(tautology: Formula, model: Model = frozendict()) -> Proof:
     """Proves the given tautology from the formulae that capture the given
@@ -181,6 +213,21 @@ def prove_tautology(tautology: Formula, model: Model = frozendict()) -> Proof:
     assert is_model(model)
     assert sorted(tautology.variables())[:len(model)] == sorted(model.keys())
     # Task 6.3a
+    if tautology.variables().issubset(model.keys()):
+        return prove_in_model(tautology, model)
+    model = dict(model)
+    sorted_vars = sorted(list(tautology.variables()))
+    for variable in sorted_vars:
+        if variable not in model.keys():
+            model[variable] = True
+            model_t = model.copy()
+            model[variable] = False
+            model_f = model.copy()
+            proof_t = prove_tautology(tautology, model_t)
+            proof_f = prove_tautology(tautology, model_f)
+            res_proof = reduce_assumption(proof_t, proof_f)
+            return res_proof
+
 
 def proof_or_counterexample(formula: Formula) -> Union[Proof, Model]:
     """Either proves the given formula or finds a model in which it does not
@@ -197,6 +244,10 @@ def proof_or_counterexample(formula: Formula) -> Union[Proof, Model]:
     """
     assert formula.operators().issubset({'->', '~'})
     # Task 6.3b
+    if is_tautology(formula):
+        return prove_tautology(formula)
+    return [m for m in all_models(list(formula.variables())) if not evaluate(formula, m)][0]
+
 
 def encode_as_formula(rule: InferenceRule) -> Formula:
     """Encodes the given inference rule as a formula consisting of a chain of
@@ -217,6 +268,14 @@ def encode_as_formula(rule: InferenceRule) -> Formula:
         q
     """
     # Task 6.4a
+    f = rule.assumptions[0]
+    for assumption in rule.assumptions[1:-1]:
+        f = Formula('->', f, assumption)
+    if len(rule.assumptions) > 1:
+        print(Formula('->', f, Formula('->', rule.assumptions[-1], rule.conclusion)))
+        return Formula('->', f, Formula('->', rule.assumptions[-1], rule.conclusion))
+    f = Formula('->', f, rule.conclusion)
+    return f
 
 def prove_sound_inference(rule: InferenceRule) -> Proof:
     """Proves the given sound inference rule.

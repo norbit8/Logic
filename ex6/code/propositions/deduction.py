@@ -82,7 +82,7 @@ def combine_proofs(antecedent1_proof: Proof, antecedent2_proof: Proof,
     for line in antecedent2_proof.lines:
         new_line = line
         if not(line.is_assumption()):
-            new_line = Proof.Line(line.formula, line.rule, tuple(map(lambda num : num + len(antecedent1_proof.lines),
+            new_line = Proof.Line(line.formula, line.rule, tuple(map(lambda num: num + len(antecedent1_proof.lines),
                                                                      line.assumptions)))
         new_proof2_lines.append(new_line)
     prev_proofs_lines = antecedent1_proof.lines + tuple(new_proof2_lines)
@@ -92,11 +92,11 @@ def combine_proofs(antecedent1_proof: Proof, antecedent2_proof: Proof,
     special = InferenceRule.formula_specialization_map(double_conditional.conclusion, this_gorer.conclusion)
     after_line = Proof.Line(double_conditional.conclusion.substitute_variables(special), double_conditional, ())
     another_line = InferenceRule("", Formula.parse("(" + str(antecedent2_proof.statement.conclusion) + "->" +
-                                                         str(consequent) + ")"))
+                                 str(consequent) + ")"))
 
     special2 = InferenceRule.formula_specialization_map(MP.conclusion, another_line.conclusion)
     after_line2 = Proof.Line(MP.conclusion.substitute_variables(special2), MP, (len(antecedent1_proof.lines) - 1,
-                                          len(antecedent1_proof.lines) + len(antecedent2_proof.lines)))
+                             len(antecedent1_proof.lines) + len(antecedent2_proof.lines)))
     mp_line = Proof.Line(consequent, MP, (len(antecedent1_proof.lines) + len(antecedent2_proof.lines) - 1,
                                           len(antecedent1_proof.lines) + len(antecedent2_proof.lines) + 1))
     return Proof(InferenceRule(antecedent1_proof.statement.assumptions,
