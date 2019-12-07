@@ -292,7 +292,21 @@ def prove_sound_inference(rule: InferenceRule) -> Proof:
     for formula in rule.assumptions + (rule.conclusion,):
         assert formula.operators().issubset({'->', '~'})
     # Task 6.4b
-    
+    formula = encode_as_formula(rule)
+    proof = prove_tautology(formula, {})
+    offset = len(proof.lines)
+    lines = list(proof.lines)
+    for assumption in rule.assumptions:
+        specialization = MP.conclusion.substitute_variables({'q': formula.second})
+        line_assumption = Proof.Line(formula.first)
+        line_mp = Proof.Line(specialization, MP, (offset, offset - 1))
+        lines += [line_assumption, line_mp]
+        offset += 2
+        formula = formula.second
+    return Proof(InferenceRule(rule.assumptions, rule.conclusion),
+                 AXIOMATIC_SYSTEM,
+                 lines)
+
 
 def model_or_inconsistency(formulae: List[Formula]) -> Union[Model, Proof]:
     """Either finds a model in which all the given formulae hold, or proves
@@ -310,6 +324,14 @@ def model_or_inconsistency(formulae: List[Formula]) -> Union[Model, Proof]:
     for formula in formulae:
         assert formula.operators().issubset({'->', '~'})
     # Task 6.5
+    formulae = list(formulae)
+    new_formula = formulae[0]
+    for formula in formulae[1:]:
+        new_formula = Formula('&', new_formula, formula)
+    for model in all_models(list(new_formula.variables())):
+        if evaluate(new_formula, model):
+            return model
+    return prove_sound_inference(InferenceRule(formulae, Formula.parse('~(p->p)')))
 
 def prove_in_model_full(formula: Formula, model: Model) -> Proof:
     """Either proves the given formula or proves its negation, from the formulae
