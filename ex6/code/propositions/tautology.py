@@ -268,14 +268,14 @@ def encode_as_formula(rule: InferenceRule) -> Formula:
         q
     """
     # Task 6.4a
-    f = rule.assumptions[0]
-    for assumption in rule.assumptions[1:-1]:
-        f = Formula('->', f, assumption)
-    if len(rule.assumptions) > 1:
-        print(Formula('->', f, Formula('->', rule.assumptions[-1], rule.conclusion)))
-        return Formula('->', f, Formula('->', rule.assumptions[-1], rule.conclusion))
-    f = Formula('->', f, rule.conclusion)
-    return f
+    if not rule.assumptions:
+        return rule.conclusion
+    elif len(rule.assumptions) == 1:
+        return Formula('->', rule.assumptions[0], rule.conclusion)
+    else:
+        new_rule = InferenceRule(rule.assumptions[1:], rule.conclusion)
+        return Formula('->', rule.assumptions[0], encode_as_formula(new_rule))
+
 
 def prove_sound_inference(rule: InferenceRule) -> Proof:
     """Proves the given sound inference rule.
@@ -292,6 +292,7 @@ def prove_sound_inference(rule: InferenceRule) -> Proof:
     for formula in rule.assumptions + (rule.conclusion,):
         assert formula.operators().issubset({'->', '~'})
     # Task 6.4b
+    
 
 def model_or_inconsistency(formulae: List[Formula]) -> Union[Model, Proof]:
     """Either finds a model in which all the given formulae hold, or proves

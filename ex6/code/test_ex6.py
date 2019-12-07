@@ -13,7 +13,7 @@ def pretest_validity(debug=False):
     test_is_valid(debug)
 
 def test_task1(debug=False):
-    # test_formulae_capturing_model(debug)
+    test_formulae_capturing_model(debug)
     test_prove_in_model(debug)
     
 def test_task2(debug=False):
