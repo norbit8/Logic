@@ -197,7 +197,7 @@ class Model(Generic[T]):
             return not self.evaluate_formula(formula.first, assignment)
         if is_binary(formula.root):
             op = m[formula.root]
-            return op(self.evaluate_formula(formula.first), self.evaluate_formula(formula.second))
+            return op(self.evaluate_formula(formula.first, assignment), self.evaluate_formula(formula.second, assignment))
         if is_quantifier(formula.root):
             assignment2 = dict(assignment)
             lis = []
