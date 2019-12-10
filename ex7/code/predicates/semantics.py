@@ -5,11 +5,12 @@
 
 """Semantic analysis of first-order logic constructs."""
 
-from typing import AbstractSet, FrozenSet, Generic, Mapping, Tuple, TypeVar
+from typing import AbstractSet, FrozenSet, Generic, Mapping, Tuple, TypeVar, Any
 
 from logic_utils import frozen, frozendict
 
 from predicates.syntax import *
+import itertools
 
 #: A generic type for a universe element in a model.
 T = TypeVar('T')
@@ -144,6 +145,18 @@ class Model(Generic[T]):
             assert function in self.function_meanings and \
                    self.function_arities[function] == arity
         # Task 7.7
+        if term.root in term.constants():
+            return self.constant_meanings[term.root]
+        if term.root in term.variables():
+            return assignment[term.root]
+        if is_function(term.root):
+            func = self.function_meanings[term.root]
+            lis = []
+            for t in term.arguments:
+                lis.append(self.evaluate_term(t,assignment))
+            return func[tuple(lis)]
+
+
 
     def evaluate_formula(self, formula: Formula,
                          assignment: Mapping[str, T] = frozendict()) -> bool:
@@ -172,6 +185,29 @@ class Model(Generic[T]):
             assert relation in self.relation_meanings and \
                    self.relation_arities[relation] in {-1, arity}
         # Task 7.8
+        m = {"&": lambda x,y:x and y, "|": lambda x,y: x or y, "->": lambda x,y: not x or y}
+        if is_equality(formula.root):
+            return self.evaluate_term(formula.arguments[0], assignment) == self.evaluate_term(formula.arguments[1], assignment)
+        if is_relation(formula.root):
+            lis = []
+            for t in formula.arguments:
+                lis.append(self.evaluate_term(t,assignment))
+            return tuple(lis) in self.relation_meanings[formula.root]
+        if is_unary(formula.root):
+            return not self.evaluate_formula(formula.first, assignment)
+        if is_binary(formula.root):
+            op = m[formula.root]
+            return op(self.evaluate_formula(formula.first), self.evaluate_formula(formula.second))
+        if is_quantifier(formula.root):
+            assignment2 = dict(assignment)
+            lis = []
+            for atom in self.universe:
+                assignment2[formula.variable] = atom
+                lis.append(self.evaluate_formula(formula.predicate, assignment2))
+            if formula.root == 'A':
+                return all(lis)
+            else:
+                return any(lis)
 
     def is_model_of(self, formulas: AbstractSet[Formula]) -> bool:
         """Checks if the current model is a model for the given formulas.
@@ -191,3 +227,13 @@ class Model(Generic[T]):
                 assert relation in self.relation_meanings and \
                        self.relation_arities[relation] in {-1, arity}
         # Task 7.9
+        for formula in formulas:
+            free_vars = tuple(formula.free_variables())
+            all_models = [p for p in itertools.product(self.universe,repeat=len(free_vars))]
+            for model in all_models:
+                ass = {}
+                for var, value in zip(free_vars, model):
+                    ass[var] = value
+                if not self.evaluate_formula(formula,ass):
+                    return False
+        return True

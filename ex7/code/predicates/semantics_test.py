@@ -90,6 +90,7 @@ def test_is_model_of(debug=False):
     for formulas,expected_result in [
             ({f1}, True), ({f2},True), ({f1, f2}, True), ({f3}, False),
             ({f1,f2,f3}, False), ({f0,f3}, False)]:
+        print(formulas, expected_result)
         result = model.is_model_of(frozenset(formulas))
         if debug:
             print('... is said', '' if result else 'not', 'to satisfy',

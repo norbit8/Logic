@@ -254,7 +254,7 @@ class Term:
         # Task 7.5.1
         s = set()
         if is_constant(self.root):
-            return set(self.root)
+            return {self.root}
         elif is_function(self.root):
             for arg in self.arguments:
                 s = s.union(Term.constants(arg))
