@@ -114,6 +114,11 @@ def replace_relations_with_functions_in_model(model: Model[T],
             new_relation_meaning[name] = m
     return Model(model.universe, model.constant_meanings, new_relation_meaning, new_function_meaning)
 
+def helper(i,term, z):
+    temp_arg = list(term.arguments)
+    temp_arg[i] = z
+    return Term(term.root,temp_arg)
+
 def compile_term(term: Term) -> List[Formula]:
     """Syntactically compiles the given term into a list of single-function
     invocation steps.
@@ -136,6 +141,14 @@ def compile_term(term: Term) -> List[Formula]:
     """
     assert is_function(term.root)
     # Task 8.3
+    l = []
+    temp = term
+    for i,t in enumerate(term.arguments):
+        if is_function(t.root):
+            l += compile_term(t)
+            temp = helper(i, term, l[-1].arguments[0])
+    l.append(Formula("=", (Term(fresh_variable_name_generator.__next__()), temp)))
+    return l
 
 def replace_functions_with_relations_in_formula(formula: Formula) -> Formula:
     """Syntactically converts the given formula to a formula that does not
