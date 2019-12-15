@@ -151,6 +151,31 @@ def compile_term(term: Term) -> List[Formula]:
     l.append(Formula("=", (Term(fresh_variable_name_generator.__next__()), temp)))
     return l
 
+def replace_realtion(l:List[Formula])->Formula:
+    if len(l) == 1:
+        return Formula(function_name_to_relation_name(l[0].arguments[1].root),l[0].arguments[1].arguments)
+    else:
+        return Formula("A",l[0].arguments[0].root,Formula("->",
+                    Formula(function_name_to_relation_name(l[0].arguments[1].root),(l[0].arguments[0],) + l[0].arguments[1].arguments)
+                       , replace_realtion(l[1:])))
+
+def replace_relation_helper(formula) -> Formula:
+    return replace_realtion(compile_term(Term(relation_name_to_function_name(formula.root),formula.arguments)))
+
+def replace_equality(l:List[Formula])->Formula:
+    if len(l) == 1:
+        return Formula("=",l[0].arguments[1].arguments)
+    else:
+        return Formula("A",l[0].arguments[0].root,Formula("->",
+                    Formula(function_name_to_relation_name(l[0].arguments[1].root),(l[0].arguments[0],) + l[0].arguments[1].arguments)
+                       , replace_equality(l[1:])))
+
+def replace_equality_helper(formula) -> Formula:
+    print("bblaa ", formula)
+    return replace_equality(compile_term(Term("r",formula.arguments)))
+
+
+
 def replace_functions_with_relations_in_formula(formula: Formula) -> Formula:
     """Syntactically converts the given formula to a formula that does not
     contain any function invocations, and is "one-way equivalent" in the sense
@@ -174,6 +199,18 @@ def replace_functions_with_relations_in_formula(formula: Formula) -> Formula:
     for variable in formula.variables():
         assert variable[0] != 'z'
     # Task 8.4
+    if is_unary(formula.root):
+        return Formula(formula.root,replace_functions_with_relations_in_formula(formula.first))
+    if is_binary(formula.root):
+        return Formula(formula.root,replace_functions_with_relations_in_formula(formula.first),
+                       replace_functions_with_relations_in_formula(formula.second))
+    if is_quantifier(formula.root):
+        return Formula(formula.root,formula.variable, replace_functions_with_relations_in_formula(formula.predicate))
+    if is_equality(formula.root):
+        return replace_equality_helper(formula)
+    if is_relation(formula.root):
+        return replace_relation_helper(formula)
+
 
 def replace_functions_with_relations_in_formulas(formulas:
                                                  AbstractSet[Formula]) -> \
@@ -245,6 +282,10 @@ def replace_equality_with_SAME_in_formulas(formulas: AbstractSet[Formula]) -> \
         assert 'SAME' not in \
                {relation for relation,arity in formula.relations()}
     # Task 8.6
+    s=set()
+    for formula in formulas:
+        s.add(replace_functions_with_relations_in_formula(formula))
+    return s
         
 def add_SAME_as_equality_in_model(model: Model[T]) -> Model[T]:
     """Adds a meaning for the relation name ``'SAME'`` in the given model, that
