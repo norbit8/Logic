@@ -147,6 +147,7 @@ def compile_term(term: Term) -> List[Formula]:
         if is_function(t.root):
             l += compile_term(t)
             temp = helper(i, term, l[-1].arguments[0])
+            term = temp
     l.append(Formula("=", (Term(fresh_variable_name_generator.__next__()), temp)))
     return l
 
