@@ -75,6 +75,7 @@ def test_replace_relations_with_functions_in_model(debug):
         print('Replacing relations with functions in model', model, '...')
     new_model = \
         replace_relations_with_functions_in_model(model, frozenset({'f', 'gG'}))
+
     assert new_model == None
 
     model = Model(

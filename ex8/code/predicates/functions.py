@@ -64,7 +64,14 @@ def replace_functions_with_relations_in_model(model: Model[T]) -> Model[T]:
         assert function_name_to_relation_name(function) not in \
                model.relation_meanings
     # Task 8.1
-    
+    new_relations = dict(model.relation_meanings)
+    for func_name, m   in model.function_meanings.items():
+        relation_name = function_name_to_relation_name(func_name)
+        fr_set = set()
+        for k,v in m.items():
+            fr_set.add((v, ) + k)
+        new_relations[relation_name] = fr_set
+    return Model(model.universe, model.constant_meanings, new_relations)
 
 def replace_relations_with_functions_in_model(model: Model[T],
                                               original_functions:
@@ -91,6 +98,21 @@ def replace_relations_with_functions_in_model(model: Model[T],
         assert function_name_to_relation_name(function) in \
                model.relation_meanings
     # Task 8.2
+    new_function_meaning = dict()
+    new_relation_meaning = dict()
+    for name, m in model.relation_meanings.items():
+        function_dict = dict()
+        func_name  = relation_name_to_function_name(name)
+        if func_name in original_functions:
+            for s in m:
+                # if the function returns different arguments for the same arguments or the arity is not matching
+                if s[1:] in function_dict.keys() or len(m) != (len(model.universe) ** (len(s[1:]))):
+                    return None
+                function_dict[s[1:]] = s[0]
+            new_function_meaning[func_name] = function_dict
+        else:
+            new_relation_meaning[name] = m
+    return Model(model.universe, model.constant_meanings, new_relation_meaning, new_function_meaning)
 
 def compile_term(term: Term) -> List[Formula]:
     """Syntactically compiles the given term into a list of single-function
