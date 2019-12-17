@@ -279,6 +279,55 @@ def replace_functions_with_relations_in_formulas(formulas:
             s = s.union(verify_func(func))
     return s
 
+def replace_equality_with_relations_in_formula(formula: Formula) -> Formula:
+    """
+
+    :param formula:
+    :return:
+    """
+    if formula.root == "=":
+        return Formula("SAME", formula.arguments)
+    elif is_unary(formula.root):
+        return Formula(formula.root, replace_equality_with_relations_in_formula(formula.first))
+    elif is_binary(formula.root):
+        return Formula(formula.root, replace_equality_with_relations_in_formula(formula.first),
+                       replace_equality_with_relations_in_formula(formula.second))
+    elif is_quantifier(formula.root):
+        return Formula(formula.root, formula.variable, replace_equality_with_relations_in_formula(formula.predicate))
+    else:
+        return formula
+
+def get_relation_restriction(relations: Set[Tuple[str, int]]) -> Set[Formula]:
+    s = set()
+    for relation in relations:
+        f = ""
+        first_vars, second_vars = [], []
+        for v in range(relation[1]):
+            first_vars.append(fresh_variable_name_generator.__next__())
+        for v in range(relation[1]):
+            second_vars.append(fresh_variable_name_generator.__next__())
+        for ve in first_vars:
+            f += "A" + ve + "["
+        for ve in second_vars:
+            f += "A" + ve + "["
+        f += "("
+        all_sames = []
+        for v in range(relation[1]):
+            all_sames.append("SAME({0},{1})".format(first_vars[v], second_vars[v]))
+        if len(all_sames) == 1:
+            f += all_sames[0]
+        else:
+            f += "(" * (len(all_sames) - 1)
+            for same in all_sames:
+                f += same + "&"
+            f = f[:-1] + (")" * (len(all_sames) - 1))
+        f += "->"
+        f += "({0}({1})->{0}({2}))".format(relation[0], ",".join(first_vars), ",".join(second_vars))
+        f += ")"
+        f += "]" * (len(first_vars) * 2)
+        s.add(Formula.parse(f))
+    return s
+
 def replace_equality_with_SAME_in_formulas(formulas: AbstractSet[Formula]) -> \
         Set[Formula]:
     """Syntactically converts the given set of formulas to a canonically
@@ -306,9 +355,15 @@ def replace_equality_with_SAME_in_formulas(formulas: AbstractSet[Formula]) -> \
         assert 'SAME' not in \
                {relation for relation,arity in formula.relations()}
     # Task 8.6
-    s=set()
+    s = set()
     for formula in formulas:
-        s.add(replace_functions_with_relations_in_formula(formula))
+        s.add(replace_equality_with_relations_in_formula(formula))
+        all_relations = formula.relations()
+        s = s.union(get_relation_restriction(all_relations)) # adding al the restrictions
+    s.add(Formula.parse("SAME(x,x)")) # reflexivity
+    s.add(Formula.parse("(SAME(x,y)->SAME(y,x))")) # symmetry 1
+    s.add(Formula.parse("(SAME(y,x)->SAME(x,y))")) # symmetry 2
+    s.add(Formula.parse("((SAME(x,y)&SAME(y,z))->SAME(x,z))")) # transitivity
     return s
         
 def add_SAME_as_equality_in_model(model: Model[T]) -> Model[T]:
@@ -327,6 +382,7 @@ def add_SAME_as_equality_in_model(model: Model[T]) -> Model[T]:
     """
     assert 'SAME' not in model.relation_meanings
     # Task 8.7
+    
     
 def make_equality_as_SAME_in_model(model: Model[T]) -> Model[T]:
     """Converts the given model to a model where equality coincides with the
