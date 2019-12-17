@@ -211,6 +211,24 @@ def replace_functions_with_relations_in_formula(formula: Formula) -> Formula:
     if is_relation(formula.root):
         return replace_relation_helper(formula)
 
+def verify_func(func: Tuple[str, int])->Set[Formula]:
+    """
+    Given a function return a formulas with relations only
+    that ensures that the function can be converted in two ways
+    specifically it creates two new formulas
+    :param func: tuple with function name and number of arguments as a tuple
+    :return: set of two formulas which verifies the function
+    """
+    relation_name = function_name_to_relation_name(func[0])
+    first, all_vars, s = "", "", set()
+    for var in range(func[1]):
+        new_var = fresh_variable_name_generator.__next__()
+        first = first + "A" + new_var + "["
+        all_vars += "," + new_var
+    first = (first + "Ey[{0}(y{1})]" + ("]" * func[1])).format(relation_name, all_vars)
+    s.add(Formula.parse(first))
+    s.add(Formula.parse("Ax[Ay[Az[(({0}(y{1})&{0}(z{1}))->y=z)]]]".format(relation_name, all_vars)))
+    return s
 
 def replace_functions_with_relations_in_formulas(formulas:
                                                  AbstractSet[Formula]) -> \
@@ -254,7 +272,13 @@ def replace_functions_with_relations_in_formulas(formulas:
         for variable in formula.variables():
             assert variable[0] != 'z'
     # Task 8.5
-        
+    s = set()
+    for formula in formulas:
+        s.add(replace_functions_with_relations_in_formula(formula))
+        for func in formula.functions():
+            s = s.union(verify_func(func))
+    return s
+
 def replace_equality_with_SAME_in_formulas(formulas: AbstractSet[Formula]) -> \
         Set[Formula]:
     """Syntactically converts the given set of formulas to a canonically

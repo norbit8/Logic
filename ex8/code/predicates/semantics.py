@@ -229,11 +229,11 @@ class Model(Generic[T]):
         # Task 7.9
         for formula in formulas:
             free_vars = tuple(formula.free_variables())
-            all_models = [p for p in itertools.product(self.universe,repeat=len(free_vars))]
+            all_models = [p for p in itertools.product(self.universe, repeat=len(free_vars))]
             for model in all_models:
                 ass = {}
                 for var, value in zip(free_vars, model):
                     ass[var] = value
-                if not self.evaluate_formula(formula,ass):
+                if not self.evaluate_formula(formula, ass):
                     return False
         return True
