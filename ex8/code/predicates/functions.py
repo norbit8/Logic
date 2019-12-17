@@ -385,9 +385,9 @@ def add_SAME_as_equality_in_model(model: Model[T]) -> Model[T]:
     all_sames = set()
     for element in model.universe:
         all_sames.add((element, element))
-    new_realation_meanings = dict(model.relation_meanings)
-    new_realation_meanings["SAME"] = all_sames
-    return Model(model.universe, model.constant_meanings, new_realation_meanings, model.function_meanings)
+    new_relation_meanings = dict(model.relation_meanings)
+    new_relation_meanings["SAME"] = all_sames
+    return Model(model.universe, model.constant_meanings, new_relation_meanings, model.function_meanings)
 
 def make_equality_as_SAME_in_model(model: Model[T]) -> Model[T]:
     """Converts the given model to a model where equality coincides with the
@@ -413,3 +413,42 @@ def make_equality_as_SAME_in_model(model: Model[T]) -> Model[T]:
            model.relation_arities['SAME'] == 2
     assert len(model.function_meanings) == 0
     # Task 8.8
+    universe = list(model.universe)
+    dont_take = []
+    equivalence_class = dict()
+    same = model.relation_meanings["SAME"]
+    for index, const in enumerate(universe):
+        if const in dont_take:
+            continue
+        equivalence_class[const] = {const}
+        for const2 in universe[index + 1:]:
+            if (const, const2) in same or (const2, const) in same:
+                equivalence_class[const].add(const2)
+                dont_take.append(const2)
+
+    new_universe = set(equivalence_class.keys())
+
+    key_list = list(equivalence_class.keys())
+    val_list = list(equivalence_class.values())
+    new_constant_meaning = dict()
+    for item in model.constant_meanings:
+        for item2 in val_list:
+            if model.constant_meanings[item] in item2:
+                new_constant_meaning[item] = key_list[val_list.index(item2)]
+
+    new_relation_meanings = {}
+    for relation in model.relation_meanings:
+        if relation is not "SAME":
+            for item in list(model.relation_meanings[relation]):
+                flag = True
+                for inner_item in item:
+                    if inner_item in dont_take:
+                        flag = False
+                        break
+                if flag:
+                    try:
+                        new_relation_meanings[relation].add(item)
+                    except:
+                        new_relation_meanings[relation] = {item}
+    return Model(new_universe, new_constant_meaning, new_relation_meanings , model.function_meanings)
+
