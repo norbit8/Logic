@@ -382,8 +382,14 @@ def add_SAME_as_equality_in_model(model: Model[T]) -> Model[T]:
     """
     assert 'SAME' not in model.relation_meanings
     # Task 8.7
-    
-    
+    all_sames = set()
+    for element in model.universe:
+        all_sames.add((element, element))
+    new_realation_meanings = dict(model.relation_meanings)
+    for item in all_sames:
+        new_realation_meanings["SAME"] = all_sames
+    return Model(model.universe, model.constant_meanings, new_realation_meanings, model.function_meanings)
+
 def make_equality_as_SAME_in_model(model: Model[T]) -> Model[T]:
     """Converts the given model to a model where equality coincides with the
     meaning of ``'SAME'`` in the given model, in the sense that any set of
