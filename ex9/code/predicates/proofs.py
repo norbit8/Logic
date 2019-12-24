@@ -595,12 +595,15 @@ class Proof:
             """
             assert line_number < len(lines) and lines[line_number] is self
             # Task 9.6
-            if self.antecedent_line_number > line_number or self.conditional_line_number > line_number:
+            if self.antecedent_line_number >= line_number or self.conditional_line_number >= line_number:
                 return False
             line = lines[line_number].formula
             line_ante = lines[self.antecedent_line_number].formula
             line_conclusion = lines[self.conditional_line_number].formula
-            return line == line_conclusion.second and line_conclusion.first == line_ante
+            try:
+                return line == line_conclusion.second and line_conclusion.first == line_ante
+            except AttributeError:
+                return False
 
     @frozen
     class UGLine:
@@ -657,6 +660,14 @@ class Proof:
             """
             assert line_number < len(lines) and lines[line_number] is self
             # Task 9.7
+            if self.predicate_line_number >= line_number:
+                return False
+            f = lines[self.predicate_line_number].formula
+            our_formula = lines[line_number].formula
+            if not our_formula.root == "A":
+                return False
+            return our_formula.predicate == f
+
 
     @frozen
     class TautologyLine:
@@ -700,6 +711,9 @@ class Proof:
             """
             assert line_number < len(lines) and lines[line_number] is self
             # Task 9.9
+            f = lines[line_number].formula
+            prop_formula, m = f.propositional_skeleton()
+            return is_propositional_tautology(prop_formula)
 
     #: An immutable proof line.
     Line = Union[AssumptionLine, MPLine, UGLine, TautologyLine]
@@ -823,6 +837,10 @@ def axiom_specialization_map_to_schema_instantiation_map(
     for key in substitution_map:
         assert is_propositional_variable(key)
     # Task 9.11.1
+    m = dict()
+    for key,val in propositional_specialization_map.items():
+        m[key.upper()]=Formula.from_propositional_skeleton(val, substitution_map)
+    return m
 
 def prove_from_skeleton_proof(formula: Formula,
                               skeleton_proof: PropositionalProof,
@@ -851,6 +869,19 @@ def prove_from_skeleton_proof(formula: Formula,
     assert Formula.from_propositional_skeleton(
         skeleton_proof.statement.conclusion, substitution_map) == formula
     # Task 9.11.2
+    lines = []
+    for line in skeleton_proof.lines:
+        if not line.rule == MP:
+            propositional_specialization_map = line.rule.specialization_map(PropositionalInferenceRule((),line.formula))
+            m = axiom_specialization_map_to_schema_instantiation_map( propositional_specialization_map, substitution_map)
+            f = Formula.from_propositional_skeleton(line.formula, substitution_map)
+            nline = Proof.AssumptionLine(f,PROPOSITIONAL_AXIOM_TO_SCHEMA[line.rule],m)
+            lines.append(nline)
+        else:
+            f = Formula.from_propositional_skeleton(line.formula, substitution_map)
+            nline = Proof.MPLine(f,line.assumptions[0],line.assumptions[1])
+            lines.append(nline)
+    return Proof(PROPOSITIONAL_AXIOMATIC_SYSTEM_SCHEMAS, formula, lines)
 
 def prove_tautology(tautology: Formula) -> Proof:
     """Proves the given predicate-logic tautology.
@@ -865,3 +896,6 @@ def prove_tautology(tautology: Formula) -> Proof:
     """
     assert is_propositional_tautology(tautology.propositional_skeleton()[0])
     # Task 9.12
+    skeleton, m = tautology.propositional_skeleton()
+    skeleton_proof = prove_propositional_tautology(skeleton)
+    return prove_from_skeleton_proof(tautology, skeleton_proof, m)

@@ -768,6 +768,28 @@ class Formula:
             return Formula(self.root, self.variable,
                            self.predicate.substitute(new_substitution_map, new_forbidden_variables))
 
+
+    def helper(self, already_map: dict)-> Tuple[PropositionalFormula,
+                                                       dict]:
+        if is_quantifier(self.root) or is_equality(self.root) or is_relation(self.root):
+            # d = dict()
+            if self in already_map.values():
+                for key in already_map.keys():
+                    if already_map[key]== self:
+                        return (PropositionalFormula.parse(key), already_map)
+            new_fresh_var = next(fresh_variable_name_generator)
+            already_map[new_fresh_var] = self
+            return (PropositionalFormula.parse(new_fresh_var), already_map)
+
+        if is_unary(self.root):
+            formula1, d = self.first.helper(already_map)
+            return (PropositionalFormula("~", formula1), d)
+        if is_binary(self.root):
+            formula1, d1 = self.first.helper(already_map)
+            formula2, d2 = self.second.helper(d1)
+            return (PropositionalFormula(self.root, formula1, formula2), d2)
+
+
     def propositional_skeleton(self) -> Tuple[PropositionalFormula,
                                               Mapping[str, Formula]]:
         """Computes a propositional skeleton of the current formula.
@@ -786,6 +808,8 @@ class Formula:
             substituted.
         """
         # Task 9.6
+        return self.helper(dict())
+
 
     @staticmethod
     def from_propositional_skeleton(skeleton: PropositionalFormula,
@@ -807,3 +831,12 @@ class Formula:
         for key in substitution_map:
             assert is_propositional_variable(key)
         # Task 9.10
+        if is_propositional_variable(skeleton.root):
+            if skeleton.root not in substitution_map:
+                assert(False)
+            return substitution_map[skeleton.root]
+        if is_unary(skeleton.root):
+            return Formula(skeleton.root, Formula.from_propositional_skeleton(skeleton.first,substitution_map))
+        if is_binary(skeleton.root):
+            return Formula(skeleton.root, Formula.from_propositional_skeleton(skeleton.first,substitution_map),
+                           Formula.from_propositional_skeleton(skeleton.second,substitution_map))

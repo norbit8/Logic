@@ -338,6 +338,7 @@ def test_propositional_skeleton(debug=False):
         if debug:
             print('The skeleton of', s, 'is', skeleton,
                   'with map', substitution_map)
+        print("GOT: ", (str(skeleton), substitution_map), "SHOULD BE:",  (expected, expected_map))
         assert (str(skeleton), substitution_map) == (expected, expected_map)
 
 def test_from_propositional_skeleton(debug=False):
