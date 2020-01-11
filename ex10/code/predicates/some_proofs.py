@@ -491,7 +491,7 @@ COMPREHENSION_AXIOM = Schema(
 
 def russell_paradox_proof(print_as_proof_forms: bool = False) -> Proof:
     """Proves from the axioms schema of unrestricted comprehension the
-    contradiction ``'(z=z&~z=z)'``.
+    contra ``'(z=z&~z=z)'``.
 
     Parameters:
         print_as_proof_forms: flag specifying whether the proof is to be printed
@@ -503,23 +503,17 @@ def russell_paradox_proof(print_as_proof_forms: bool = False) -> Proof:
     """
     prover = Prover({COMPREHENSION_AXIOM}, print_as_proof_forms)
     # Task 10.13
-    base = Formula.parse('((In(x,y)->~In(x,x))&(~In(x,x)->In(x,y)))')
-    t = base.substitute({'x': Term('_')})
-    print(t)
-    step1 = prover.add_instantiated_assumption('Ey[Ax[((In(x,y)->~In(x,x))&(~In(x,x)->In(x,y)))]]', COMPREHENSION_AXIOM,
-                                               {'R':'~In(_,_)'})
-    step2 = prover.add_instantiated_assumption('(Ax[((In(x,y)->~In(x,x))&(~In(x,x)->In(x,y)))]->((In(y,y)->~In(y,y))&(~In(y,y)->In(y,y))))',
-                                               prover.UI, {'c': 'y', 'R': '((In(_,y)->~In(_,_))&(~In(_,_)->In(_,y)))'})
-    step3 = prover.add_instantiated_assumption('(((In(y,y)->~In(y,y))&(~In(y,y)->In(y,y)))->Ey[((In(y,y)->~In(y,y))&(~In(y,y)->In(y,y)))])',
-                                               prover.EI,
-                                               {'R': "((In(_,y)->~In(_,_))&(~In(_,_)->In(_,y)))", 'x':'y', 'c': 'y'})
-    # syllogism = prover.add_tautological_inference('(Ax[((In(x,y)->~In(x,x))&(~In(x,x)->In(x,y)))]->Ey[((In(y,y)->~In(y,y))&(~In(y,y)->In(y,y)))])', {step3, step2})
-    #
-    # step4 = prover.add_existential_derivation('Ey[((In(y,y)->~In(y,y))&(~In(y,y)->In(y,y)))]', step1, syllogism)
-    #
-    # step5 = prover.add_tautology('(((In(y,y)->~In(y,y))&(~In(y,y)->In(y,y)))->(z=z&~z=z))')
-    #
-    # step6 = prover.add_existential_derivation('(z=z&~z=z)', step4, step5)
+    instantiation_map = {'R': Formula.parse('~In(_,_)')} # from the hint
+    step0 = prover.add_instantiated_assumption(COMPREHENSION_AXIOM.instantiate(instantiation_map),
+                                                         COMPREHENSION_AXIOM, instantiation_map)
+    step1 = prover.add_tautology("(((In(y,y)->~In(y,y))&(~In(y,y)->In(y,y)))->(z=z&~z=z))")
+    russells_paradox = "((In(x,y)->~In(x,x))&(~In(x,x)->In(x,y)))"
+    russell_pred = "Ax[{0}]".format(russells_paradox)
+    step2 = prover.add_instantiated_assumption("({0}->((In(y,y)->~In(y,y))&(~In(y,y)->In(y,y))))".format(russell_pred),
+                                               prover.UI,
+                                               {'R': "((In(_,y)->~In(_,_))&(~In(_,_)->In(_,y)))",'c': 'y', 'x': 'x'})
+    step3 = prover.add_tautological_implication("({0}->(z=z&~z=z))".format(russell_pred), {step1, step2})
+    prover.add_existential_derivation("(z=z&~z=z)", step0, step3)
     return prover.qed()
 
 def not_exists_not_implies_all_proof(formula: Formula, variable: str,
