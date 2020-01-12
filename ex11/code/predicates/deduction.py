@@ -71,6 +71,7 @@ def remove_assumption(proof: Proof, assumption: Formula,
             step_father = prover.add_tautology(Formula('->', line.formula, Formula('->', assumption, line.formula)))
             line_number = prover.add_mp(Formula('->', assumption, line.formula), luther, step_father)
             line_mapper[index_line] = line_number
+
     return prover.qed()
     # US = Schema(Formula.parse('(Ax[(Q()->R(x))]->(Q()->Ax[R(x)]))'),
     #             {'Q', 'R', 'x'})

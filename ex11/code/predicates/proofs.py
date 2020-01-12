@@ -253,7 +253,7 @@ class Schema:
                     if var1 in bound_variables:
                         raise Schema.BoundVariableError(var1, formula.root)
                 try:
-                    return relations_instantiation_map[formula.root].substitute({'_': t}, set())
+                    return relations_instantiation_map[formula.root].substitute({'_': t}, set()) # YOAVLEVY
                 except ForbiddenVariableError as err:
                     raise Schema.BoundVariableError(err.variable_name, formula.root)
         if is_quantifier(formula.root):
