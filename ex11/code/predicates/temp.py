@@ -1,14 +1,9 @@
-from predicates.prover import *
-from predicates.syntax import *
+from predicates.prenex import *
 
-prover = Prover({'Ay[(Man(y)->Mortal(y))]', 'Man(aristotle)'}, False)
-step1 = prover.add_assumption('Ay[(Man(y)->Mortal(y))]')
-step2 = prover.add_universal_instantiation(
-    '(Man(aristotle)->Mortal(aristotle))', step1, 'aristotle')
-# step3 = prover.add_assumption('Man(aristotle)')
-# step4 = prover.add_mp('Mortal(aristotle)', step3, step2)
-# proof = prover.qed()
+# f, p = uniquely_rename_quantified_variables(Formula.parse("Ax[x=x]"))
+# print(f)
+# print(p)
+f, p = pull_out_quantifications_from_right_across_binary_operator(Formula.parse("(S()&Az[Ew[z=w]])"))
 
-# print(prover.qed())
-
-# print(Prover.helper([Formula.parse("x=x"), Formula.parse("Ay[x=x]"), Formula.parse("(R(x)->R(f(x)))")]))
+print(p.is_valid())
+print(f)

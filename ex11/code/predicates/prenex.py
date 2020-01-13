@@ -61,6 +61,14 @@ def is_quantifier_free(formula: Formula) -> bool:
         otherwise.
     """
     # Task 11.3.1
+    if is_equality(formula.root) or is_relation(formula.root):
+        return True
+    if is_binary(formula.root):
+        return is_quantifier_free(formula.first) and is_quantifier_free(formula.second)
+    if is_unary(formula.root):
+        return is_quantifier_free(formula.first)
+    if is_quantifier(formula.root):
+        return False
 
 def is_in_prenex_normal_form(formula: Formula) -> bool:
     """Checks if the given formula is in prenex normal form.
@@ -73,6 +81,10 @@ def is_in_prenex_normal_form(formula: Formula) -> bool:
         otherwise.
     """
     # Task 11.3.2
+    if not is_quantifier(formula.root):
+        return is_quantifier_free(formula)
+    else:
+        return is_in_prenex_normal_form(formula.predicate)
 
 def equivalence_of(formula1: Formula, formula2: Formula) -> Formula:
     """States the equivalence of the two given formulas as a formula.
@@ -141,6 +153,47 @@ def uniquely_rename_quantified_variables(formula: Formula) -> \
         `ADDITIONAL_QUANTIFICATION_AXIOMS`.
     """
     # Task 11.5
+    prover = Prover(ADDITIONAL_QUANTIFICATION_AXIOMS)
+    if is_quantifier_free(formula):
+        prover.add_tautology(Formula.parse(f"(({formula}->{formula})&({formula}->{formula}))"))
+        return formula, prover.qed()
+    if is_quantifier(formula.root):
+        f, p = uniquely_rename_quantified_variables(formula.predicate)
+        ante = prover.add_proof(p.conclusion, p)
+        fresh_var = next(fresh_variable_name_generator)
+        x = formula.variable
+        old_R = p.conclusion.first.first
+        old_Q = p.conclusion.first.second
+        R = old_R.substitute({x: Term.parse("_")})
+        Q = old_Q.substitute({x: Term.parse("_")})
+        new_Q = Q.substitute({"_": Term.parse(fresh_var)})
+        d = {"R": R, "Q": Q, "x": x, "y": fresh_var}
+        line_number, instance = 0, None
+        if formula.root == "A":
+            instance = Formula.parse(f"((({old_R}->{old_Q})&({old_Q}->{old_R}))->((A{formula.variable}[{old_R}]->A{fresh_var}[{new_Q}])&(A{fresh_var}[{new_Q}]->A{formula.variable}[{old_R}])))")
+            conse = prover.add_instantiated_assumption(instance, ADDITIONAL_QUANTIFICATION_AXIOMS[14], d)
+        else: # its E
+            instance = Formula.parse(f"((({old_R}->{old_Q})&({old_Q}->{old_R}))->((E{formula.variable}[{old_R}]->E{fresh_var}[{new_Q}])&(E{fresh_var}[{new_Q}]->E{formula.variable}[{old_R}])))")
+            conse = prover.add_instantiated_assumption(instance, ADDITIONAL_QUANTIFICATION_AXIOMS[15], d)
+        # ante = prover.add_tautology(instance.first)
+        prover.add_mp(instance.second, ante, conse)
+        return instance.second.first.second, prover.qed()
+    if is_binary(formula.root):
+        f1, p1 = uniquely_rename_quantified_variables(formula.first)
+        f2, p2 = uniquely_rename_quantified_variables(formula.second)
+        line1 = prover.add_proof(p1.conclusion, p1)
+        line2 = prover.add_proof(p2.conclusion, p2)
+        R = formula
+        Q = Formula(formula.root, f1, f2)
+        prover.add_tautological_implication(Formula.parse(f"(({R}->{Q})&({Q}->{R}))"),{line1,line2})
+        return Q, prover.qed()
+    if is_unary(formula.root):
+        f, p = uniquely_rename_quantified_variables(formula.first)
+        line1 = prover.add_proof(p.conclusion, p)
+        R = formula
+        Q = Formula(formula.root, f)
+        prover.add_tautological_implication(Formula.parse(f"(({R}->{Q})&({Q}->{R}))"),{line1})
+        return Q, prover.qed()
 
 def pull_out_quantifications_across_negation(formula: Formula) -> \
         Tuple[Formula, Proof]:
@@ -185,6 +238,60 @@ def pull_out_quantifications_across_negation(formula: Formula) -> \
     """
     assert is_unary(formula.root)
     # Task 11.6
+    prover = Prover(ADDITIONAL_QUANTIFICATION_AXIOMS)
+    if is_quantifier_free(formula):
+        prover.add_tautology(equivalence_of(formula, formula))
+        return formula, prover.qed()
+    if is_quantifier_free(formula.first.predicate):
+        formula_new = formula.first
+        if formula_new .root == 'A':
+            x = formula_new.variable
+            old_R = formula_new.predicate
+            R = formula_new.predicate.substitute({x: Term.parse("_")})
+            prover.add_instantiated_assumption(Formula.parse(f"((~A{x}[{old_R}]->E{x}[~{old_R}])&(E{x}[~{old_R}]->~A{x}[{old_R}]))"), ADDITIONAL_QUANTIFICATION_AXIOMS[0] , {"x": x, "R": R})
+            f = Formula.parse(f"E{x}[~{old_R}]")
+            return f, prover.qed()
+        else: #"E"
+            x = formula_new.variable
+            old_R = formula_new.predicate
+            R = formula_new.predicate.substitute({x: Term.parse("_")})
+            prover.add_instantiated_assumption(Formula.parse(f"((~E{x}[{old_R}]->A{x}[~{old_R}])&(A{x}[~{old_R}]->~E{x}[{old_R}]))"), ADDITIONAL_QUANTIFICATION_AXIOMS[1] , {"x": x, "R": R})
+            f = Formula.parse(f"A{x}[~{old_R}]")
+            return f, prover.qed()
+    else:
+        our_formula = formula.first
+        f, p = pull_out_quantifications_across_negation(Formula("~", our_formula.predicate))
+        line1 = prover.add_proof(p.conclusion, p)
+        our_var = our_formula.variable
+        if our_formula.root == "A":
+            R = p.conclusion.first.first
+            new_R = R.substitute({our_var: Term.parse("_")})
+            Q = p.conclusion.first.second
+            new_Q = Q.substitute({our_var: Term.parse("_")})
+            instante = Formula.parse(f"((({R}->{Q})&({Q}->{R}))->((E{our_var}[{R}]->E{our_var}[{Q}])&(E{our_var}[{Q}]->E{our_var}[{R}])))")
+            line2 = prover.add_instantiated_assumption(instante, ADDITIONAL_QUANTIFICATION_AXIOMS[15], {'R':new_R, 'Q':new_Q, 'x':our_var, 'y':our_var})
+            line3 = prover.add_mp(instante.second, line1, line2)
+            x = our_var
+            old_R = our_formula.predicate
+            R = our_formula.predicate.substitute({x: Term.parse("_")})
+            line4 = prover.add_instantiated_assumption(Formula.parse(f"((~A{x}[{old_R}]->E{x}[~{old_R}])&(E{x}[~{old_R}]->~A{x}[{old_R}]))"), ADDITIONAL_QUANTIFICATION_AXIOMS[0] , {"x": x, "R": R})
+            prover.add_tautological_implication(equivalence_of(formula, instante.second.first.second), {line4, line3})
+            return instante.second.first.second, prover.qed()
+        else: # "E"
+            R = p.conclusion.first.first
+            new_R = R.substitute({our_var: Term.parse("_")})
+            Q = p.conclusion.first.second
+            new_Q = Q.substitute({our_var: Term.parse("_")})
+            instante = Formula.parse(f"((({R}->{Q})&({Q}->{R}))->((A{our_var}[{R}]->A{our_var}[{Q}])&(A{our_var}[{Q}]->A{our_var}[{R}])))")
+            line2 = prover.add_instantiated_assumption(instante, ADDITIONAL_QUANTIFICATION_AXIOMS[14], {'R':new_R, 'Q':new_Q, 'x':our_var, 'y':our_var})
+            line3 = prover.add_mp(instante.second, line1, line2)
+            x = our_var
+            old_R = our_formula.predicate
+            R = our_formula.predicate.substitute({x: Term.parse("_")})
+            line4 = prover.add_instantiated_assumption(Formula.parse(f"((~E{x}[{old_R}]->A{x}[~{old_R}])&(A{x}[~{old_R}]->~E{x}[{old_R}]))"), ADDITIONAL_QUANTIFICATION_AXIOMS[1] , {"x": x, "R": R})
+            prover.add_tautological_implication(equivalence_of(formula, instante.second.first.second), {line4, line3})
+            return instante.second.first.second, prover.qed()
+
 
 def pull_out_quantifications_from_left_across_binary_operator(formula:
                                                               Formula) -> \
@@ -232,7 +339,65 @@ def pull_out_quantifications_from_left_across_binary_operator(formula:
     assert has_uniquely_named_variables(formula)
     assert is_binary(formula.root)
     # Task 11.7.1
-    
+    op_dict = {('&', 'A'): 2, ('&', 'E'): 3, ('|', 'A'): 6, ('|', 'E'): 7, ('->', 'A'): 10, ('->', 'E'): 11, 'E': 15, 'A': 14}
+    prover = Prover(ADDITIONAL_QUANTIFICATION_AXIOMS)
+    if is_quantifier_free(formula):
+        prover.add_tautology(equivalence_of(formula, formula))
+        return formula, prover.qed()
+    if is_quantifier_free(formula.first.predicate):
+        formula_new = formula.first
+        op = formula.root
+        kamat = formula.first.root
+        new_kamat = kamat
+        if op == "->":
+            if kamat == 'A':
+                new_kamat = 'E'
+            else:
+                new_kamat='A'
+        x = formula_new.variable
+        old_R = formula_new.predicate
+        R = formula_new.predicate.substitute({x: Term.parse("_")})
+        Q = formula.second
+        insta = Formula.parse(f"((({kamat}{x}[{old_R}]{op}{Q})->{new_kamat}{x}[({old_R}{op}{Q})])&({new_kamat}{x}[({old_R}{op}{Q})]->({kamat}{x}[{old_R}]{op}{Q})))")
+        prover.add_instantiated_assumption(insta,
+                                           ADDITIONAL_QUANTIFICATION_AXIOMS[op_dict[(op, kamat)]] ,
+                                           {"x": x, "R": R, "Q": Q})
+        f = Formula.parse(f"{new_kamat}{x}[({old_R}{op}{Q})]")
+        return f, prover.qed()
+    else:
+        op = formula.root
+        new_f = Formula(op, formula.first.predicate, formula.second)
+        f, p = pull_out_quantifications_from_left_across_binary_operator(new_f)
+        our_formula = formula.first
+        line1 = prover.add_proof(p.conclusion, p)
+        our_var = our_formula.variable
+
+        kamat = our_formula.root
+        new_kamat = kamat
+        if op == "->":
+            if kamat == 'A':
+                new_kamat = 'E'
+            else:
+                new_kamat='A'
+        R = p.conclusion.first.first
+        new_R = R.substitute({our_var: Term.parse("_")})
+        Q = p.conclusion.first.second
+        new_Q = Q.substitute({our_var: Term.parse("_")})
+        instante = Formula.parse(f"((({R}->{Q})&({Q}->{R}))->(({new_kamat}{our_var}[{R}]->{new_kamat}{our_var}[{Q}])&({new_kamat}{our_var}[{Q}]->{new_kamat}{our_var}[{R}])))")
+        line2 = prover.add_instantiated_assumption(instante, ADDITIONAL_QUANTIFICATION_AXIOMS[op_dict[new_kamat]], {'R':new_R, 'Q':new_Q, 'x':our_var, 'y':our_var})
+        line3 = prover.add_mp(instante.second, line1, line2)
+        x = our_var
+        old_R = formula.first.predicate
+        Q = formula.second
+        R = our_formula.predicate.substitute({x: Term.parse("_")})
+        insta = Formula.parse(f"((({kamat}{x}[{old_R}]{op}{Q})->{new_kamat}{x}[({old_R}{op}{Q})])&({new_kamat}{x}[({old_R}{op}{Q})]->({kamat}{x}[{old_R}]{op}{Q})))")
+        line4 = prover.add_instantiated_assumption(insta,
+                                           ADDITIONAL_QUANTIFICATION_AXIOMS[op_dict[(op, kamat)]] ,
+                                           {"x": x, "R": R, "Q": Q})
+        prover.add_tautological_implication(equivalence_of(formula, instante.second.first.second), {line4, line3})
+        return instante.second.first.second, prover.qed()
+
+
 def pull_out_quantifications_from_right_across_binary_operator(formula:
                                                                Formula) -> \
         Tuple[Formula, Proof]:
@@ -279,6 +444,66 @@ def pull_out_quantifications_from_right_across_binary_operator(formula:
     assert has_uniquely_named_variables(formula)
     assert is_binary(formula.root)
     # Task 11.7.2
+    op_dict = {('&', 'A'): 4, ('&', 'E'): 5, ('|', 'A'): 8, ('|', 'E'): 9, ('->', 'A'): 12, ('->', 'E'): 13, 'E': 15, 'A': 14}
+    prover = Prover(ADDITIONAL_QUANTIFICATION_AXIOMS)
+    if is_quantifier_free(formula):
+        prover.add_tautology(equivalence_of(formula, formula))
+        return formula, prover.qed()
+    if is_quantifier_free(formula.second.predicate):
+        formula_new = formula.second
+        op = formula.root
+        kamat = formula.second.root
+        new_kamat = kamat
+        # if op == "->":
+        #     if kamat == 'A':
+        #         new_kamat = 'E'
+        #     else:
+        #         new_kamat='A'
+        x = formula_new.variable
+        old_R = formula_new.predicate
+        R = formula_new.predicate.substitute({x: Term.parse("_")})
+        Q = formula.first
+        insta = Formula.parse(f"((({Q}{op}{kamat}{x}[{old_R}])->{new_kamat}{x}[({Q}{op}{old_R})])&({new_kamat}{x}[({Q}{op}{old_R})]->({Q}{op}{kamat}{x}[{old_R}])))")
+        prover.add_instantiated_assumption(insta,
+                                           ADDITIONAL_QUANTIFICATION_AXIOMS[op_dict[(op, kamat)]] ,
+                                           {"x": x, "R": R, "Q": Q})
+        #    Schema(Formula.parse('(((Q()&Ax[R(x)])->Ax[(Q()&R(x))])&'
+        # '(Ax[(Q()&R(x))]->(Q()&Ax[R(x)])))'), {'x','R','Q'}),
+        f = Formula.parse(f"{new_kamat}{x}[({Q}{op}{old_R})]")
+        return f, prover.qed()
+    else:
+        op = formula.root
+        new_f = Formula(op, formula.first, formula.second.predicate)
+        f, p = pull_out_quantifications_from_right_across_binary_operator(new_f)
+        our_formula = formula.second
+        line1 = prover.add_proof(p.conclusion, p)
+        our_var = our_formula.variable
+        kamat = our_formula.root
+        new_kamat = kamat
+        # if op == "->":
+        #     if kamat == 'A':
+        #         new_kamat = 'E'
+        #     else:
+        #         new_kamat='A'
+        R = p.conclusion.first.first
+        new_R = R.substitute({our_var: Term.parse("_")})
+        Q = p.conclusion.first.second
+        new_Q = Q.substitute({our_var: Term.parse("_")})
+        instante = Formula.parse(f"((({R}->{Q})&({Q}->{R}))->(({new_kamat}{our_var}[{R}]->{new_kamat}{our_var}[{Q}])&({new_kamat}{our_var}[{Q}]->{new_kamat}{our_var}[{R}])))")
+        line2 = prover.add_instantiated_assumption(instante, ADDITIONAL_QUANTIFICATION_AXIOMS[op_dict[new_kamat]], {'R':new_R, 'Q':new_Q, 'x':our_var, 'y':our_var})
+        line3 = prover.add_mp(instante.second, line1, line2)
+        x = our_var
+        old_R = formula.second.predicate
+        Q = formula.first
+        R = our_formula.predicate.substitute({x: Term.parse("_")})
+        insta = Formula.parse(f"((({Q}{op}{kamat}{x}[{old_R}])->{new_kamat}{x}[({Q}{op}{old_R})])&({new_kamat}{x}[({Q}{op}{old_R})]->({Q}{op}{kamat}{x}[{old_R}])))")
+        line4 = prover.add_instantiated_assumption(insta,
+                                           ADDITIONAL_QUANTIFICATION_AXIOMS[op_dict[(op, kamat)]] ,
+                                           {"x": x, "R": R, "Q": Q})
+        print(p.conclusion)
+        prover.add_tautological_implication(equivalence_of(formula, instante.second.first.second), {line4, line3})
+        return instante.second.first.second, prover.qed()
+
 
 def pull_out_quantifications_across_binary_operator(formula: Formula) -> \
         Tuple[Formula, Proof]:

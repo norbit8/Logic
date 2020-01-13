@@ -71,10 +71,7 @@ def remove_assumption(proof: Proof, assumption: Formula,
             step_father = prover.add_tautology(Formula('->', line.formula, Formula('->', assumption, line.formula)))
             line_number = prover.add_mp(Formula('->', assumption, line.formula), luther, step_father)
             line_mapper[index_line] = line_number
-
     return prover.qed()
-    # US = Schema(Formula.parse('(Ax[(Q()->R(x))]->(Q()->Ax[R(x)]))'),
-    #             {'Q', 'R', 'x'})
 
 
 def proof_by_way_of_contradiction(proof: Proof, assumption: Formula,
@@ -102,3 +99,11 @@ def proof_by_way_of_contradiction(proof: Proof, assumption: Formula,
         if isinstance(line, Proof.UGLine):
             assert line.formula.variable not in assumption.free_variables()
     # Task 11.2
+    removed_proof = remove_assumption(proof, assumption)
+    contradiction = proof.conclusion
+    prover = Prover(removed_proof.assumptions, print_as_proof_forms)
+    step1 = prover.add_proof(removed_proof.conclusion, removed_proof)
+    conse = prover.add_tautological_implication(Formula.parse(f"(~{contradiction}->~{assumption})"), {step1})
+    ante = prover.add_tautology(Formula.parse(f"~{contradiction}"))
+    prover.add_mp(Formula.parse(f"~{assumption}"), ante, conse)
+    return prover.qed()
