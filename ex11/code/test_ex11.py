@@ -4,7 +4,6 @@
 # File name: test_ex11.py
 
 """Tests all Chapter 11 tasks."""
-
 from predicates.deduction_test import *
 from predicates.prenex_test import *
 from predicates.some_proofs_test import *
@@ -43,13 +42,13 @@ def test_task9(debug=False):
 def test_task10(debug=False):
     test_to_prenex_normal_form(debug)
 
-# test_task1(True)
-# test_task2(True)
-# test_task3(True)
+test_task1(True)
+test_task2(True)
+test_task3(True)
 # test_task4(True) # Optional
-# test_task5(True)
-# test_task6(True)
+test_task5(True)
+test_task6(True)
 test_task7(True)
-# test_task8(True)
-# test_task9(True)
-# test_task10(True)
+test_task8(True)
+test_task9(True)
+test_task10(True)
