@@ -34,6 +34,7 @@ class Prover:
     #: Axiom schema of universal instantiation
     UI = Schema(Formula.parse('(Ax[R(x)]->R(c))'), {'R', 'x', 'c'})
     #: Axiom schema of existential introduction
+    #: Axiom schema of existential introduction
     EI = Schema(Formula.parse('(R(c)->Ex[R(x)])'), {'R', 'x', 'c'})
     #: Axiom schema of universal simplification
     US = Schema(Formula.parse('(Ax[(Q()->R(x))]->(Q()->Ax[R(x)]))'),
@@ -74,6 +75,7 @@ class Prover:
                   '  AXIOMS')
             for assumption in self._assumptions - Prover.AXIOMS:
                   print('  ' + str(assumption))
+            print('Lines:')
             print('Lines:')
 
     def qed(self) -> Proof:

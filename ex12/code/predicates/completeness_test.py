@@ -624,6 +624,8 @@ def test_existential_closure_step(debug=False):
     assert is_existentially_closed(augmented)
     if debug:
         print('Testing existential_closure_step on result...')
+    print(existential_closure_step(augmented))
+    print( augmented)
     assert existential_closure_step(augmented) == augmented
 
     if debug:

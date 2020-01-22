@@ -334,6 +334,15 @@ def combine_contradictions(proof_from_affirmation: Proof,
                                                 negated_assumption}):
         assert len(assumption.formula.free_variables()) == 0
     # Task 12.4
+    prover = Prover(common_assumptions)
+    p1 = remove_assumption(proof_from_affirmation, affirmed_assumption.formula)
+    p2 = remove_assumption(proof_from_negation, negated_assumption.formula)
+    line1 = prover.add_proof(p1.conclusion, p1)
+    line2 = prover.add_proof(p2.conclusion, p2)
+    prover.add_tautological_implication(Formula("&", negated_assumption.formula,
+                                                affirmed_assumption.formula),
+                                        {line1, line2})
+    return prover.qed()
 
 def eliminate_universal_instantiation_assumption(proof: Proof, constant: str,
                                                  instantiation: Formula,
@@ -366,6 +375,19 @@ def eliminate_universal_instantiation_assumption(proof: Proof, constant: str,
     for assumption in proof.assumptions:
         assert len(assumption.formula.free_variables()) == 0
     # Task 12.5
+    prover = Prover(proof.assumptions - {Schema(Formula.parse(str(instantiation)))})
+    p1 = proof_by_way_of_contradiction(proof, instantiation)
+    one = prover.add_proof(p1.conclusion, p1)
+    conse = prover.add_instantiated_assumption(Formula('->', universal, instantiation), Prover.UI, {
+        'R': universal.predicate.substitute({universal.variable: Term.parse('_')}), # kal
+        'x': universal.variable,
+        'c': constant
+    })
+    ante = prover.add_assumption(universal)
+    two = prover.add_mp(instantiation, ante, conse)
+    prover.add_tautological_implication(Formula('&', p1.conclusion, instantiation), {one, two})
+    return prover.qed()
+
 
 def universal_closure_step(sentences: AbstractSet[Formula]) -> Set[Formula]:
     """Augments the given sentences with all universal instantiations of each
@@ -386,6 +408,14 @@ def universal_closure_step(sentences: AbstractSet[Formula]) -> Set[Formula]:
         assert is_in_prenex_normal_form(sentence) and \
                len(sentence.free_variables()) == 0
     # Task 12.6
+    all_consts = get_constants(sentences)
+    res_set = set(sentences)
+    for sentence in sentences:
+        if sentence.root == 'A':
+            for const in all_consts:
+                f = sentence.predicate.substitute({sentence.variable: Term(const)})
+                res_set.add(f)
+    return res_set
 
 def replace_constant(proof: Proof, constant: str, variable: str = 'zz') -> \
         Proof:
@@ -413,6 +443,53 @@ def replace_constant(proof: Proof, constant: str, variable: str = 'zz') -> \
     for line in proof.lines:
         assert variable not in line.formula.variables()
     # Task 12.7.1
+    new_assumptions = set()
+    for schema in proof.assumptions:
+        if schema.templates == frozenset():
+            if constant in schema.formula.constants():
+                f = schema.formula.substitute({constant : Term.parse(variable)})
+                new_assumptions.add(Schema(f))
+            else:
+                new_assumptions.add(schema)
+        else:
+            new_assumptions.add(schema)
+    prover = Prover(new_assumptions)
+    for line in proof.lines:
+        if constant not in line.formula.constants():
+            prover._add_line(line)
+        else:
+            f = line.formula.substitute({constant : Term.parse(variable)})
+            if isinstance(line, Proof.MPLine):
+                prover.add_mp(f, line.antecedent_line_number, line.conditional_line_number)
+            if isinstance(line, Proof.TautologyLine):
+                prover.add_tautology(f)
+            if isinstance(line, Proof.AssumptionLine):
+                if line.assumption.templates == frozenset():
+                    prover.add_assumption(f)
+                else:
+                    m = dict()
+                    for k,v in line.instantiation_map.items():
+                        if isinstance(v,Formula):
+                            if constant in v.constants():
+                                ff = v.substitute({constant:Term.parse(variable)})
+                                m[k] = ff
+                            else:
+                                m[k] = v
+                        if isinstance(v, Term):
+                            if constant in v.constants():
+                                ff = v.substitute({constant: Term.parse(variable)})
+                                m[k] = ff
+                            else:
+                                m[k] = v
+                        if isinstance(v, str):
+                            v = Term(v)
+                            if constant in v.constants():
+                                ff = v.substitute({constant: Term.parse(variable)})
+                                m[k] = ff
+                            else:
+                                m[k] = str(v)
+                    prover.add_instantiated_assumption(f, line.assumption, m)
+    return prover.qed()
 
 def eliminate_existential_witness_assumption(proof: Proof, constant: str,
                                              witness: Formula,
@@ -451,6 +528,27 @@ def eliminate_existential_witness_assumption(proof: Proof, constant: str,
     for assumption in proof.assumptions.difference({Schema(witness)}):
         assert constant not in assumption.formula.constants()
     # Task 12.7.2
+    var = existential.variable
+    c = list(witness.constants() - existential.predicate.constants())[0]
+    p = replace_constant(proof, c)
+    pc = proof_by_way_of_contradiction(p, witness.substitute({c: Term('zz')}))
+    prover = Prover(pc.assumptions)
+    line1 = prover.add_proof(pc.conclusion, pc)
+    line2 = prover.add_free_instantiation(pc.conclusion.substitute({'zz': Term(var)}), line1,  {'zz': Term(var)})
+    not_Rx = pc.conclusion.substitute({'zz': Term(var)})
+    line4 = prover.add_instantiated_assumption(Formula.parse("z=z"), prover.RX, {'c':'z'})
+    line5 = prover.add_tautological_implication(Formula("->", Formula.parse("z=z"), not_Rx), {line4, line2})
+    line35 = prover.add_tautological_implication(Formula("->", not_Rx.first, Formula.parse("~z=z")), {line5})
+    q = Formula("~", Formula.parse("z=z"))
+    a = Formula("A", var, Formula("->", not_Rx.first, q))
+    b = Formula("E",var,not_Rx.first)
+    un = Formula("->", Formula("&",a,b),q)
+    line36 = prover.add_instantiated_assumption(un, prover.ES, {'R': not_Rx.first.substitute({var:Term("_")}),'Q':q, 'x':var})
+    line37 = prover.add_assumption(existential)
+    line38 = prover.add_ug(Formula("A", var, Formula("->", not_Rx.first, Formula.parse("~z=z"))), line35)
+    line7 = prover.add_tautological_implication(q, {line37, line38, line36})
+    prover.add_tautological_implication(Formula("&", q, q.first), {line7,line4})
+    return prover.qed()
 
 def existential_closure_step(sentences: AbstractSet[Formula]) -> Set[Formula]:
     """Augments the given sentences with an existential witness that uses a new
@@ -473,3 +571,17 @@ def existential_closure_step(sentences: AbstractSet[Formula]) -> Set[Formula]:
         assert is_in_prenex_normal_form(sentence) and \
                len(sentence.free_variables()) == 0
     # Task 12.8
+    constants = get_constants(sentences)
+    s = set(sentences)
+    for sen in sentences:
+        if sen.root == 'E':
+            flag = False
+            for c in constants:
+                ft = sen.predicate.substitute({sen.variable:Term(c)})
+                if ft in sentences:
+                    flag = True
+                    break
+            if not flag:
+                f = sen.predicate.substitute({sen.variable:Term(next(fresh_constant_name_generator))})
+                s.add(f)
+    return s
